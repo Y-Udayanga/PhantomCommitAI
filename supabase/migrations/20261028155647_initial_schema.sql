@@ -102,8 +102,9 @@ begin
  if auth.uid() is null or bucket not in ('ai','github') then return false; end if;
  cap := least(max_requests,case when bucket='ai' then 8 else 90 end);
  insert into private.request_limits as limits(user_id,bucket,window_start,hits) values(auth.uid(),bucket,date_trunc('minute',now()),1)
- on conflict(user_id,bucket) do update set hits=case when limits.window_start=date_trunc('minute',now()) then limits.hits+1 else 1 end,window_start=date_trunc('minute',now()) returning hits into hits_now;
+ on conflict on constraint request_limits_pkey do update set hits=case when limits.window_start=date_trunc('minute',now()) then limits.hits+1 else 1 end,window_start=date_trunc('minute',now()) returning hits into hits_now;
  return hits_now<=cap;
 end $$;
 revoke all on function public.consume_request(text,integer) from public,anon;
 grant execute on function public.consume_request(text,integer) to authenticated;
+

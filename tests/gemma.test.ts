@@ -1,0 +1,10 @@
+import {it,expect,vi,afterEach} from 'vitest';
+const {generate}=vi.hoisted(()=>({generate:vi.fn()}));
+vi.mock('@google/genai',()=>({GoogleGenAI:class {models={generateContent:generate};}}));
+import {investigate} from '../src/lib/server/gemma';
+import {demoCommits} from '../src/lib/demo';
+afterEach(()=>{vi.unstubAllEnvs();generate.mockReset();});
+it('does not make calls without credentials',async()=>{vi.stubEnv('GEMINI_API_KEY','');await expect(investigate('why removed?','explain',demoCommits)).rejects.toMatchObject({status:503});expect(generate).not.toHaveBeenCalled();});
+it('parses fenced JSON and bounds context',async()=>{vi.stubEnv('GEMINI_API_KEY','test-only');generate.mockResolvedValue({text:'```json\n{"answer":"Intent is unknown.","findings":[]}\n```'});const r=await investigate('why removed?','explain',demoCommits);expect(r.answer).toBe('Intent is unknown.');const input=generate.mock.calls[0][0];expect(input.contents.length).toBeLessThan(52000);expect(input.model).toBe('gemma-4-26b-a4b-it');});
+it('rejects invalid structured output',async()=>{vi.stubEnv('GEMINI_API_KEY','test-only');generate.mockResolvedValue({text:'{"findings":"not valid"}'});await expect(investigate('why removed?','explain',demoCommits)).rejects.toMatchObject({status:502});});
+it('returns quota errors without repeated paid calls',async()=>{vi.stubEnv('GEMINI_API_KEY','test-only');generate.mockRejectedValue({status:429});await expect(investigate('why removed?','explain',demoCommits)).rejects.toMatchObject({status:429});expect(generate).toHaveBeenCalledTimes(1);});

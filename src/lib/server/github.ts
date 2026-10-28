@@ -5,7 +5,7 @@ export class ServiceError extends Error { constructor(public status: number, mes
 export async function github(path: string) {
   for (let attempt=0; attempt<2; attempt++) {
     let response: Response;
-    try { response = await fetch(`https://api.github.com${path}`, { headers: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) }, signal: AbortSignal.timeout(12000), cache:'no-store' }); }
+    try { response = await fetch(`https://api.github.com${path}`, { headers: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) }, signal: AbortSignal.timeout(6000), cache:'no-store' }); }
     catch { if (!attempt) continue; throw new ServiceError(504,'GitHub timed out. Try again.'); }
     if (response.status === 404) throw new ServiceError(404,'Public repository or revision not found. Private repositories are not supported.');
     if (response.status === 409) return { data: [], more: false };
@@ -31,3 +31,4 @@ export async function commitDetails(owner: string, name: string, sha: string): P
   const data=result.data;
   return {...normalizeCommit(data), files:z.array(z.unknown()).parse(data.files || []).map(normalizeFile), files_incomplete:result.more};
 }
+

@@ -22,7 +22,7 @@ EVIDENCE: ${context}`;
   const ai=new GoogleGenAI({apiKey:process.env.GEMINI_API_KEY});
   for (let attempt=0;attempt<2;attempt++) {
     try {
-      const response=await ai.models.generateContent({model, contents:prompt,config:{maxOutputTokens:5000,httpOptions:{timeout:25000}}});
+      const response=await ai.models.generateContent({model, contents:prompt,config:{maxOutputTokens:5000,httpOptions:{timeout:18000,retryOptions:{attempts:1}}}});
       const text=(response.text || '').trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'');
       const parsed=answerSchema.safeParse(JSON.parse(text));
       if (!parsed.success) throw new ServiceError(502,'Gemma returned an invalid analysis. No findings were saved. Please retry.');
@@ -37,3 +37,4 @@ EVIDENCE: ${context}`;
   }
   throw new ServiceError(503,'Gemma is temporarily unavailable.');
 }
+
