@@ -12,13 +12,17 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"], channel: process.env.E2E_BROWSER_CHANNEL === "chromium" ? undefined : "chrome" },
+      use: {
+        ...devices["Desktop Chrome"],
+        channel:
+          process.env.E2E_BROWSER_CHANNEL === "chromium" ? undefined : "chrome",
+      },
     },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: "npm run dev",
+        command: process.env.CI ? "npm run start" : "npm run dev",
         url: "http://localhost:3000",
         reuseExistingServer: true,
         timeout: 120000,
