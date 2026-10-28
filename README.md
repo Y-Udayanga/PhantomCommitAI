@@ -12,7 +12,8 @@ Current source code cannot tell the whole story of a regression. PhantomCommit p
 
 ## Implemented application
 
-- Landing page and responsive dark investigation workspace; explicit `/demo` with four synthetic commits and no simulated AI answers.
+- Responsive real-data investigation workspace. No sample repositories, commits, analytics or AI responses are loaded by the application. Legacy `/demo` links redirect to the real workspace.
+- AI Studio with 16 focused tools: explanations, historical questions, risk review, root cause investigation, regression suspects, deleted-code investigation, lineage review, security drift, forgotten-feature leads, restoration plans, test suggestions, impact summaries, intent classification, factual storytelling, next steps and reports.
 - Supabase email sign-up, verification callback, sign-in, password recovery, logout, server-verified protected pages and APIs.
 - Public repository import, branch selection, 20-commit history pages, detail caching, resumable batches of up to three commits.
 - File additions, removals, modifications, renames, hunk line extraction, large-removal and validation/error-handling review leads.
@@ -22,7 +23,7 @@ Current source code cannot tell the whole story of a regression. PhantomCommit p
 - Profile editing and cascading deletion of stored investigation data.
 - PostgreSQL ownership policies, atomic per-user request limits, bounded source context, schema validation, retries and timeouts.
 
-The source is implemented, but hosted Supabase/Gemma integration and the full live acceptance scenario require your credentials. See [verification status](docs/VERIFICATION.md). This is not a claim of a fully validated production release.
+The source is implemented. Two server-only Gemma key routes support feature analyses and AI Detective separately. The full persisted acceptance scenario still requires the hosted schema and a real authenticated account. See [verification status](docs/VERIFICATION.md). This is not a claim of a fully validated production release.
 
 ## Stack
 
@@ -56,19 +57,20 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000). `/demo` works without credentials. Live mode displays setup guidance until Supabase is configured.
+Open [localhost:3000](http://localhost:3000). Sign in to connect real repositories. Missing configuration, unavailable providers, missing schema and empty history have explicit states; the app does not substitute sample data.
 
 ### Environment variables
 
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
-GEMINI_API_KEY=YOUR_GOOGLE_AI_STUDIO_KEY
+GEMINI_API_KEY=YOUR_FEATURE_ANALYSIS_KEY
+GEMINI_DETECTIVE_API_KEY=YOUR_DETECTIVE_CHAT_KEY
 GEMMA_MODEL=gemma-4-26b-a4b-it
 GITHUB_TOKEN=
 ```
 
-Never commit `.env.local`. Only the two `NEXT_PUBLIC_` values belong in the browser. No service-role key is used. `GITHUB_TOKEN` is optional; use the least privileged token needed for public repository reads. Anonymous GitHub API quotas are small.
+Never commit `.env` or `.env.local`. In this workspace, Google keys are in ignored `.env` and Supabase values are in ignored `.env.local`. `.env.local` takes priority for duplicate variable names. Only the two `NEXT_PUBLIC_` values belong in the browser. No service-role key is used. `GITHUB_TOKEN` is optional; use the least privileged token needed for public repository reads. Anonymous GitHub API quotas are small.
 
 ### Supabase
 
@@ -84,6 +86,8 @@ All ten public application tables have RLS. Related-record policies traverse own
 
 Create a key in [Google AI Studio](https://aistudio.google.com/). Confirm access and applicable terms/quota for `gemma-4-26b-a4b-it`; optionally select `gemma-4-31b-it`. Only these two configured models are accepted. Follow the [official Gemma Gemini API guide](https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api).
 
+`GEMINI_API_KEY` serves AI Studio, explanations, risk reviews, restoration and reports. `GEMINI_DETECTIVE_API_KEY` serves conversational AI Detective requests. There is no silent key fallback. Separate keys in the same Google project share project quota; key presence is not proof of provider availability.
+
 Gemma is the sole generative provider. The service calls `GoogleGenAI.models.generateContent`, asks for JSON in the prompt and validates it with Zod; it does not assume constrained JSON generation support. Selected public code is processed by Google after explicit consent. This is hosted inference, not fully local or offline AI.
 
 ## First investigation
@@ -92,7 +96,7 @@ Gemma is the sole generative provider. The service calls `GoogleGenAI.models.gen
 2. Enter a root URL such as `https://github.com/octocat/Hello-World`.
 3. Choose **Load history**, then click a commit to inspect changes. **Analyze next batch** caches details for up to three uninspected commits; repeat to resume.
 4. Open Code Graveyard or Ghost Replay. Snapshot comparison uses the first parent by default; choose another loaded commit to compare the same historical path.
-5. In AI Detective, select a prompt or describe a regression. Confirm provider processing consent and submit. Use the selected commit or clear it to search inspected history.
+5. Open AI Studio to choose a focused analysis and optional file/date scope. In AI Detective, select a prompt or describe a regression. Confirm provider processing consent and submit. Use the selected commit or clear it to search inspected history.
 6. Successful analyses and follow-ups save automatically. Reopen them from Overview or AI Detective.
 7. Export an investigation as Markdown, or generate a saved report and print it.
 
@@ -114,24 +118,24 @@ If Gemma is unavailable, commit browsing, deterministic review leads, artifacts 
 
 Responses use `{data: ...}` or `{error: {code, message}}`. All endpoints except `/api/status` require a verified Supabase session. Mutations require a same-origin browser request and Zod-validated input.
 
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/api/validate` | POST | Normalize a repository root URL |
-| `/api/repositories` | GET / POST | List / import owned repositories |
-| `/api/repositories/:id` | GET / DELETE | Read metadata / cascade-delete data |
-| `/api/repositories/:id/branches` | GET | First 100 branch names, with more flag |
-| `/api/repositories/:id/commits?page=1&branch=main` | GET | Paginated commit metadata |
-| `/api/repositories/:id/commits/:sha` | GET | Cached or fetched commit detail |
-| `/api/repositories/:id/saved-commits` | GET | Up to 200 stored commits |
-| `/api/repositories/:id/analyze` | POST | Analyze up to three SHAs, create a run |
-| `/api/repositories/:id/graveyard` | GET | Stored file/line removal artifacts |
-| `/api/repositories/:id/compare?base=SHA&head=SHA` | GET | GitHub compare response |
-| `/api/repositories/:id/snapshot?ref=SHA&file=PATH` | GET | Text snapshot up to 150 KB |
-| `/api/ai` | POST | Explain/risk/chat/root-cause/graveyard/restore/report/tests/story modes |
-| `/api/investigations` / `/:id` | GET | Saved threads / messages |
-| `/api/runs` | GET | Progress and errors for recent runs |
-| `/api/reports` | GET | Saved reports |
-| `/api/profile` | GET / PATCH / DELETE | Profile / display name / delete investigation data |
+| Endpoint                                           | Method               | Purpose                                                                 |
+| -------------------------------------------------- | -------------------- | ----------------------------------------------------------------------- |
+| `/api/validate`                                    | POST                 | Normalize a repository root URL                                         |
+| `/api/repositories`                                | GET / POST           | List / import owned repositories                                        |
+| `/api/repositories/:id`                            | GET / DELETE         | Read metadata / cascade-delete data                                     |
+| `/api/repositories/:id/branches`                   | GET                  | First 100 branch names, with more flag                                  |
+| `/api/repositories/:id/commits?page=1&branch=main` | GET                  | Paginated commit metadata                                               |
+| `/api/repositories/:id/commits/:sha`               | GET                  | Cached or fetched commit detail                                         |
+| `/api/repositories/:id/saved-commits`              | GET                  | Up to 200 stored commits                                                |
+| `/api/repositories/:id/analyze`                    | POST                 | Analyze up to three SHAs, create a run                                  |
+| `/api/repositories/:id/graveyard`                  | GET                  | Stored file/line removal artifacts                                      |
+| `/api/repositories/:id/compare?base=SHA&head=SHA`  | GET                  | GitHub compare response                                                 |
+| `/api/repositories/:id/snapshot?ref=SHA&file=PATH` | GET                  | Text snapshot up to 150 KB                                              |
+| `/api/ai`                                          | POST                 | Explain/risk/chat/root-cause/graveyard/restore/report/tests/story modes |
+| `/api/investigations` / `/:id`                     | GET                  | Saved threads / messages                                                |
+| `/api/runs`                                        | GET                  | Progress and errors for recent runs                                     |
+| `/api/reports`                                     | GET                  | Saved reports                                                           |
+| `/api/profile`                                     | GET / PATCH / DELETE | Profile / display name / delete investigation data                      |
 
 `/api/ai` takes `repository_id`, optional `sha` and `thread_id`, `mode`, `question`, and `consent:true`. All writes are awaited. There is no background process or dependence on a persistent Vercel filesystem.
 
@@ -148,7 +152,7 @@ npm run format:check
 
 Playwright defaults to installed Google Chrome. Set `E2E_BROWSER_CHANNEL=chromium` and run `npx playwright install chromium` to use bundled Chromium instead. Tests use an existing localhost server or start one. `E2E_BASE_URL` selects an already running deployment.
 
-Unit and service tests cover normalization, hunk parsing, rename/missing patch behavior, evidence rejection, provider error handling and AI response parsing. PGlite executes the actual migration in PostgreSQL with two simulated authenticated identities to test ownership policies, hostile child inserts, ownership transfers, quota caps and cascading deletion. It is a local SQL test, not a substitute for Supabase Auth verification.
+Unit and service tests cover normalization, hunk parsing, rename/missing patch behavior, evidence rejection, per-mode credential routing, task definitions, scoped evidence filtering, provider error handling and AI response parsing. Synthetic evidence fixtures are isolated under `tests/fixtures` and are never imported by application code. PGlite executes the actual migration in PostgreSQL with two simulated authenticated identities to test ownership policies, hostile child inserts, ownership transfers, quota caps and cascading deletion. It is a local SQL test, not a substitute for Supabase Auth verification.
 
 Optional live checks are deliberately skipped without credentials:
 
@@ -172,11 +176,12 @@ See [verification](docs/VERIFICATION.md), [deployment](docs/DEPLOYMENT.md) and t
 
 ## Screenshots
 
-Screenshots captured from the labeled synthetic fixture, not production analytics:
+The landing page is captured from the actual application. No synthetic repository screenshots are shipped.
 
-![Synthetic investigation overview](docs/screenshots/overview.png)
+[AI Studio desktop setup view](docs/screenshots/ai-studio-setup.png) · [Mobile setup view](docs/screenshots/ai-studio-mobile-setup.png). These show the real UI with no connected repository and with requests disabled until evidence is available; no repository results are simulated.
+
 ![Landing page](docs/screenshots/landing.png)
 
 ## License and credits
 
-MIT — see [LICENSE](LICENSE). Original layout, ghost artwork and synthetic fixture were created for this project. Icons: Lucide (ISC). Component composition follows shadcn/ui (MIT) and Radix Slot (MIT); charting uses Recharts (MIT), graphing uses React Flow (MIT), Monaco uses Microsoft’s MIT-licensed editor. No third-party application source or stock artwork was copied. Google Gemma model and hosted API use are subject to their own terms; application licensing does not relicense model weights.
+MIT — see [LICENSE](LICENSE). Original layout, ghost artwork and test fixtures were created for this project. Icons: Lucide (ISC). Component composition follows shadcn/ui (MIT) and Radix Slot (MIT); charting uses Recharts (MIT), graphing uses React Flow (MIT), Monaco uses Microsoft’s MIT-licensed editor. No third-party application source or stock artwork was copied. Google Gemma model and hosted API use are subject to their own terms; application licensing does not relicense model weights.
