@@ -666,7 +666,12 @@ async function handle(req: NextRequest, ctx: Context) {
           thread = t.data.id;
         }
         const m = await db.from("investigation_messages").insert([
-          { thread_id: thread, role: "user", content: payload.question },
+          {
+            thread_id: thread,
+            role: "user",
+            content: payload.question,
+            evidence_json: [],
+          },
           {
             thread_id: thread,
             role: "assistant",

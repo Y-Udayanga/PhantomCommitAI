@@ -40,6 +40,10 @@ export async function authenticated() {
 }
 export function checkDb(error: { message: string; code?: string } | null) {
   if (!error) return;
+  // SQLSTATE only: raw messages/details can contain source code and user data.
+  console.error("database_request_failed", {
+    code: /^[A-Z0-9]{5,9}$/.test(error.code || "") ? error.code : "unknown",
+  });
   if (["PGRST202", "PGRST205", "42P01", "42883"].includes(error.code || "")) {
     throw new ServiceError(
       503,
