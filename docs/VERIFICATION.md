@@ -1,3 +1,13 @@
+# Hosted database repair — October 29, 2026
+
+The authenticated Supabase dashboard inspection found zero app tables or quota functions. The initial migration was applied in a transaction and returned success, followed by a Data API schema reload. Verification found 11 tables with RLS, 10 ownership policies, 15 foreign keys, authenticated repository CRUD, authenticated quota execution, and no anonymous quota execution. Anonymous REST requests changed from missing objects to 401/42501 access denied.
+
+A hosted rolled-back SQL transaction passed owner CRUD and quota calls using existing Auth identities, plus cross-user read/update/delete denial and forged-ownership insertion denial. No verification records were retained. The exact script is `supabase/tests/authorization-smoke.sql`. This checks actual hosted database authorization, not the browser session or the Supabase email flow.
+
+The production confirmation and recovery callback URLs were saved in Supabase. Local tests: 54 passed, two live checks skipped; lint and production build passed. The browser import is pending the user signing into the app.
+
+---
+
 # Theme and responsive layout update — October 29, 2026
 
 Dark/light controls are available on the landing page, authentication screens, workspace toolbar and Settings. A fixed bootstrap script restores the saved theme before paint. Theme-aware code editor, graph and chart chrome follow it.

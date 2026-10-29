@@ -6,7 +6,7 @@ Target project: `beezpkgdrxpidyhzcvuq`. App configuration is in the ignored `.en
 
 Apply `supabase/migrations/20261028155647_initial_schema.sql` once, after inspecting the target schema. The migration does not drop existing tables. If any of its table names already exist, inspect and reconcile them before applying it; do not delete existing data to force setup.
 
-The Supabase plugin currently has no accessible projects and denied inspection of this project. Reconnect it with an account that has project access, then ask to continue the database migration. Alternatively, an authorized project administrator can run the migration in the project's [SQL Editor](https://supabase.com/dashboard/project/beezpkgdrxpidyhzcvuq/sql/new).
+On October 29, 2026, the dashboard SQL Editor confirmed zero application tables/functions, then the initial migration was applied successfully inside an explicit transaction. The Data API schema cache was reloaded. The connected plugin still denies access, so dashboard access was used. **Do not rerun the initial CREATE script on this project.** SQL Editor execution does not populate CLI migration history; reconcile that history before a future CLI database push.
 
 ## Tables and relationships
 
@@ -41,10 +41,14 @@ Unique keys prevent duplicate repositories per owner, duplicate SHAs per reposit
 4. Use two dedicated confirmed accounts to run `tests/supabase.integration.test.ts`, including child inserts and ownership transfer attempts.
 5. Sign in through the app and verify repository persistence. The empty workspace should show onboarding rather than a missing-schema error.
 
-Email authentication is already enabled according to the public Auth settings endpoint. Configure Site URL and redirect allowlists for `https://phantomcommitai.onrender.com/auth/callback` and the recovery callback as documented in README before testing verification email and password reset.
+Email authentication is enabled. Site URL points to the Render app, and its exact confirmation and recovery callbacks are now saved in the redirect allowlist.
 
 ## Repository import failure diagnosis
 
 On October 29, 2026 the public GitHub metadata request for octocat/Hello-World returned HTTP 200. The Supabase Data API returned PGRST205 for repositories and PGRST202 for consume_request using the public client identity. The authenticated import route invokes consume_request before GitHub, so missing migration objects can block imports before repository retrieval. Anonymous probes alone do not establish the complete schema or authenticated grants; inspect the project before applying SQL.
 
-Project inspection, logs and advisors remain inaccessible through the connected plugin (permission denied), and the dashboard requires sign-in. The hosted migration has not been applied or the import verified by this agent. Once access is restored, inspect existing tables/functions, apply the initial migration if absent, reload the Data API schema cache if needed, and test an authenticated repository import. Missing table/function errors now have a specific sanitized setup message; other raw database failures remain private.
+After dashboard sign-in, SQL inspection confirmed the application schema was absent. The migration now exists: 11 tables (10 public plus private counters), all with RLS, 10 ownership policies, and 15 foreign keys. Authenticated repository CRUD and quota execution privileges are present. Anonymous REST access now returns permission denied rather than missing-object errors. Missing table/function errors have a specific sanitized setup message; raw database failures remain private.
+
+The hosted transaction in `supabase/tests/authorization-smoke.sql` passed owner CRUD and quota checks, then confirmed cross-user reads, updates, deletes and forged ownership are blocked. It used two existing Auth identities and rolled back every verification write. It did not issue tokens or alter Auth users. A live app-session import remains to be verified after the user signs in.
+
+Dashboard advisors were reviewed after migration: unused indexes are expected in a newly created schema; the private counter intentionally has RLS without client policies; the authenticated SECURITY DEFINER RPC is a deliberately narrow quota endpoint with an empty search path, UID checks and fixed upper limits. The Auth leaked-password-protection warning remains an account configuration item; it was not represented as resolved.

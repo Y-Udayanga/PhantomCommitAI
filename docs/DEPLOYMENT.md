@@ -46,7 +46,7 @@ Before deploying, run lint, TypeScript, unit tests and the production build. Com
 
 Render hosting does not create Supabase tables. Apply the SQL migration after obtaining access to the intended Supabase project. Verify real CRUD, sessions and cross-user isolation. Set Supabase Site URL and auth redirect allowlists to the actual deployed origin, including `/auth/callback` and the recovery callback documented in README.
 
-At the last database check the `repositories` endpoint returned `PGRST205`; the migration has not been applied by this agent. A healthy website alone does not establish that persisted investigation workflows have passed.
+The initial migration was applied through the authenticated dashboard SQL Editor on October 29, 2026. All 11 tables have RLS; authenticated owner CRUD and cross-user isolation passed rolled-back hosted SQL checks. Browser import and persisted investigation workflows still require verification in an app session.
 
 ## Account verification
 
@@ -62,6 +62,6 @@ Supabase Authentication → URL Configuration must use:
 - Confirmation callback: `https://phantomcommitai.onrender.com/auth/callback`
 - Recovery callback: `https://phantomcommitai.onrender.com/auth/callback?next=/auth%3Faction%3Dupdate`
 
-Remove localhost entries from this production project's redirect allowlist. The connected Supabase account currently exposes no projects; dashboard sign-in is required to save these settings and apply the migration. The public repositories endpoint still returns PGRST205, so saved investigation workflows remain unavailable until the schema exists. Do not treat a configured connection as verified authenticated CRUD.
+The production Site URL is correct and both exact callback URLs above are now saved; there are no localhost redirects. The schema is applied. Anonymous table/function requests are rejected with 42501 as intended. The hosted SQL owner CRUD and cross-user checks passed; the full browser acceptance scenario is a separate test.
 
 References: [Render Next.js](https://render.com/docs/deploy-nextjs-app), [environment settings](https://render.com/docs/configure-environment-variables), [deployment lifecycle](https://render.com/docs/deploys), [Ultramarine API](https://docs.paperinstruments.com/docs/ultramarine/chat-completions).
