@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { createHash } from "node:crypto";
 import { authenticated, checkDb, configured } from "@/lib/server/supabase";
 import {
-  github,
+  github as fetchGitHub,
   commitDetails,
   normalizeCommit,
   ServiceError,
@@ -20,6 +21,12 @@ import { applicationOrigin } from "@/lib/server/origin";
 import { analysisModes } from "@/lib/ai-tasks";
 import { filterEvidence } from "@/lib/context";
 import { gemmaConfiguration } from "@/lib/server/ai-config";
+import {
+  githubAppConfigured,
+  userGitHubCredential,
+  githubSessionCookie,
+} from "@/lib/server/github-app";
+import { checkRepositoryBatch } from "@/lib/server/repository-batch";
 import { parseRepository, classify } from "@/lib/analysis";
 import type { Commit, Repository } from "@/lib/types";
 
@@ -70,7 +77,14 @@ async function handle(req: NextRequest, ctx: Context) {
       return NextResponse.json({
         data: {
           database: configured(),
-          github: { tokenConfigured: !!process.env.GITHUB_TOKEN?.trim() },
+          github: {
+            tokenConfigured: !!process.env.GITHUB_TOKEN?.trim(),
+            appConfigured: githubAppConfigured(),
+            mode:
+              githubAppConfigured() || process.env.GITHUB_AUTH_MODE === "app"
+                ? "app"
+                : "shared",
+          },
           ai: gemmaConfiguration().features,
           aiRoutes: gemmaConfiguration(),
           providers: providerConfiguration(),
@@ -83,6 +97,28 @@ async function handle(req: NextRequest, ctx: Context) {
     )
       throw new ServiceError(403, "Request origin is not allowed.");
     const { db, user } = await authenticated();
+    let credential: Promise<string | undefined> | undefined;
+    const gitHubCredential = () =>
+      (credential ||= userGitHubCredential(user.id));
+    const github = async (
+      path: string,
+      options: { maxAgeSeconds?: number } = {},
+    ) => {
+      try {
+        return await fetchGitHub(path, {
+          ...options,
+          token: await gitHubCredential(),
+        });
+      } catch (error) {
+        if (
+          error instanceof ServiceError &&
+          error.status === 401 &&
+          githubAppConfigured()
+        )
+          (await cookies()).delete(githubSessionCookie);
+        throw error;
+      }
+    };
     const quota = await db.rpc("consume_request", {
       bucket: path[0] === "ai" ? "ai" : "github",
       max_requests: path[0] === "ai" ? 8 : 90,
@@ -187,6 +223,7 @@ async function handle(req: NextRequest, ctx: Context) {
           repository.github_owner,
           repository.github_name,
           sha,
+          await gitHubCredential(),
         ),
       );
     }
@@ -229,6 +266,86 @@ async function handle(req: NextRequest, ctx: Context) {
     }
     if (path.join("/") === "validate" && req.method === "POST")
       return ok(parseRepository(inputSchema.parse(await body(req)).url));
+    if (path.join("/") === "repositories/batch" && req.method === "POST") {
+      const payload = z
+        .object({ urls: z.array(z.string().max(300)).min(1).max(4) })
+        .parse(await body(req));
+      await gitHubCredential();
+      const results = await checkRepositoryBatch(payload.urls, async (url) => {
+        const parsed = parseRepository(url);
+        const base = `/repos/${parsed.owner}/${parsed.name}`;
+        const { data } = await github(base);
+        if (data.private || data.visibility === "private")
+          throw new ServiceError(
+            403,
+            "Only public repositories are supported.",
+          );
+        const saved = await db
+          .from("repositories")
+          .upsert(
+            {
+              owner_id: user.id,
+              github_owner: data.owner.login,
+              github_name: data.name,
+              full_name: data.full_name,
+              github_url: data.html_url,
+              default_branch: data.default_branch,
+              description: data.description,
+            },
+            { onConflict: "owner_id,full_name" },
+          )
+          .select()
+          .single();
+        checkDb(saved.error);
+        const repository = saved.data as Repository;
+        try {
+          const history = await github(
+            `${base}/commits?per_page=20&page=1&sha=${encodeURIComponent(repository.default_branch)}`,
+            { maxAgeSeconds: 30 },
+          );
+          const commits = (history.data as unknown[]).map(normalizeCommit);
+          if (commits.length) {
+            const stored = await db.from("commits").upsert(
+              commits.map((c) => ({
+                repository_id: repository.id,
+                sha: c.sha,
+                message: c.message,
+                author_name: c.author_name,
+                committed_at: c.committed_at,
+                html_url: c.html_url,
+                parent_shas: c.parent_shas,
+              })),
+              { onConflict: "repository_id,sha" },
+            );
+            checkDb(stored.error);
+          }
+          return {
+            url,
+            status: "checked",
+            repository,
+            commits: commits.length,
+          };
+        } catch (error) {
+          return {
+            url,
+            status: "connected",
+            repository,
+            commits: 0,
+            message:
+              error instanceof ServiceError
+                ? error.message
+                : "Repository connected, but history could not be saved. Retry from the explorer.",
+            ...(error instanceof ServiceError && error.retryAt
+              ? { retry_at: new Date(error.retryAt).toISOString() }
+              : {}),
+          };
+        }
+      });
+      return ok({
+        results,
+        checked: results.filter((r) => r.status === "checked").length,
+      });
+    }
     if (path[0] === "repositories" && path[1]) {
       const repository = await repo(path[1]);
       const base = `/repos/${repository.github_owner}/${repository.github_name}`;
@@ -285,7 +402,12 @@ async function handle(req: NextRequest, ctx: Context) {
           .order("committed_at", { ascending: false })
           .limit(200);
         checkDb(r.error);
-        return ok((r.data || []).map((c) => ({ ...c, files: c.file_changes })));
+        return ok(
+          (r.data || []).map((c) => ({
+            ...c,
+            files: c.details_loaded ? c.file_changes : undefined,
+          })),
+        );
       }
       if (path[2] === "compare" && req.method === "GET") {
         const a = shaSchema.parse(req.nextUrl.searchParams.get("base"));
@@ -674,6 +796,8 @@ async function handle(req: NextRequest, ctx: Context) {
     let status = 500,
       message = "The request could not be completed. Please retry.";
     if (error instanceof ServiceError) {
+      if (error.status === 401 && githubAppConfigured())
+        (await cookies()).delete(githubSessionCookie);
       status = error.status;
       message = error.message;
     } else if (error instanceof z.ZodError) {

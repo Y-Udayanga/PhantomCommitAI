@@ -68,7 +68,9 @@ References: [Render Next.js](https://render.com/docs/deploy-nextjs-app), [enviro
 
 ## GitHub request allowance
 
-Set GITHUB_TOKEN as a server-only Render environment variable. Use a token restricted to public-repository read access; private access and write permissions are unnecessary for this MVP. Do not put it in a NEXT_PUBLIC variable or source control. The public status response exposes only github.tokenConfigured, which indicates presence rather than successful authentication. Verify a real repository operation after the environment change is deployed.
+Public production uses the GitHub App registered at https://github.com/apps/phantomcommit-ai. Set `GITHUB_AUTH_MODE=app`, `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET`, and a random 32-byte base64url `GITHUB_APP_COOKIE_SECRET` as server-only Render variables. Keep expiring user tokens enabled and set the exact callback to `https://phantomcommitai.onrender.com/api/github/callback`. No extra permissions, installation or webhook is required for public reads. Never put the secret or encryption key in source control or a NEXT_PUBLIC variable.
+
+After deployment, `/api/status` must report `github.appConfigured=true` and `github.mode=app`. This proves configuration presence, not a successful token exchange. Sign in with Supabase, connect GitHub in Settings, then import a real repository to verify authorization. Tokens are encrypted in an owner-bound HttpOnly cookie; refresh tokens are discarded, so reconnect after expiry. Each four-repository batch consumes one application request allowance and runs two bounded checks concurrently. Upstream limits still apply. `GITHUB_TOKEN` is a legacy fallback only when App mode is disabled.
 
 Without authentication GitHub uses the host IP quota, which can be exhausted on shared hosting. Successful conditional 304 responses avoid primary-rate usage only for correctly authenticated requests. Coalescing, short caches and cooldowns reduce repeat traffic; they cannot grant more upstream quota.
 

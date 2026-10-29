@@ -67,9 +67,9 @@ function retryTime(response: Response) {
 }
 export async function github(
   path: string,
-  options: { maxAgeSeconds?: number } = {},
+  options: { maxAgeSeconds?: number; token?: string } = {},
 ): Promise<GitHubResult> {
-  const token = process.env.GITHUB_TOKEN?.trim();
+  const token = options.token || process.env.GITHUB_TOKEN?.trim();
   const credential = createHash("sha256")
     .update(token || "anonymous")
     .digest("hex");
@@ -138,8 +138,10 @@ async function fetchGitHub(
     if (response.status === 409) return { data: [], more: false };
     if (response.status === 401)
       throw new ServiceError(
-        503,
-        "GitHub authentication failed. An administrator must check the server GitHub token.",
+        token?.startsWith("ghu_") ? 401 : 503,
+        token?.startsWith("ghu_")
+          ? "Your GitHub connection expired or was revoked. Reconnect GitHub in Settings."
+          : "GitHub authentication failed. An administrator must check the server GitHub token.",
       );
     if (response.status === 403 || response.status === 429) {
       const body = await response.json().catch(() => ({}));
@@ -228,9 +230,11 @@ export async function commitDetails(
   owner: string,
   name: string,
   sha: string,
+  token?: string,
 ): Promise<Commit> {
   const result = await github(
     `/repos/${owner}/${name}/commits/${sha}?per_page=100`,
+    { token },
   );
   const data = result.data;
   return {

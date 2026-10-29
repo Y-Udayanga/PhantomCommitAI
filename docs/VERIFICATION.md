@@ -116,10 +116,10 @@ This validates PostgreSQL policies against the migration, not Supabase’s hoste
 
 ## Release gates still open
 
-- Apply migration to the intended Supabase project and verify real session handling, email confirmation, password reset and cross-user isolation.
-- Restore outbound GitHub connectivity and run `RUN_LIVE_GITHUB=1`; import and inspect a real small repository through the UI.
+- Hosted migration and rolled-back owner CRUD/cross-user isolation checks passed on October 29, 2026. Real email confirmation, password reset and browser session acceptance still need a dedicated account.
+- Import and inspect a real small repository through the UI after connecting the GitHub App.
 - Configure Gemini access, consent to excerpt processing, and validate a real Gemma response and its citations.
 - Run `tests/e2e/live.spec.ts` with a dedicated account and public test repository: sign in → import → inspect → request AI → follow up → save → reopen → export. Registration and email verification also require a real mailbox/manual verification.
-- Test against the intended Vercel preview, then deploy and record the actual successful URL.
+- Production is https://phantomcommitai.onrender.com on Render. Verify the exact new deployment revision and live GitHub OAuth exchange before declaring that flow complete.
 
 The application is locally implemented and the synthetic workflow is verified. It is not yet a fully verified competition release because these external gates remain open.

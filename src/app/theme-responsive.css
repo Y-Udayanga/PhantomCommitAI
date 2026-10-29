@@ -479,9 +479,101 @@ html[data-theme="light"] .react-flow__controls button {
   }
 }
 
+.repository-batch-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.repository-batch-form textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+}
+.repository-batch-form > p {
+  font-size: 12px;
+}
+.batch-count {
+  color: var(--purple);
+}
+.batch-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.batch-result {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface);
+}
+.batch-result > div {
+  flex: 1;
+  min-width: 0;
+}
+.batch-result strong {
+  display: block;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.batch-result span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.batch-result p {
+  width: 100%;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.batch-result.checked > svg {
+  color: var(--green);
+}
+.batch-limit-note {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.github-connection {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.github-connection h2 {
+  font-size: 16px;
+}
+.github-connection p {
+  font-size: 12px;
+}
+.github-connection .row {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.connection-status {
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal .github-connection {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width: 650px) {
+  .github-connection .btn {
+    width: 100%;
+  }
+}
 @media print {
   .theme-toggle,
   .auth-theme {
     display: none !important;
   }
+}
+.repository-batch-form button,
+.github-connection button {
+  min-height: 44px;
 }

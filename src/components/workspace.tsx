@@ -40,6 +40,15 @@ import {
 } from "lucide-react";
 import { Brand, Ghost } from "./brand";
 import { EvidenceCard } from "./evidence-card";
+import {
+  GitHubConnection,
+  type GitHubConnectionState,
+} from "./github-connection";
+import { RepositoryBatchForm } from "./repository-batch-form";
+import {
+  repositoryBatchURLs,
+  type RepositoryCheckResult,
+} from "@/lib/repository-batch";
 import { ReportCard, ReportIntro } from "./report-card";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./theme-toggle";
@@ -145,6 +154,11 @@ export default function Workspace({
   configured: boolean;
 }) {
   const router = useRouter();
+  const [gitHubConnection, setGitHubConnection] =
+    useState<GitHubConnectionState>({ configured: false, connected: false });
+  const [importResults, setImportResults] = useState<RepositoryCheckResult[]>(
+    [],
+  );
   const [provider, setProvider] = useState<AIProvider>("gemma");
   const [ultramarineReady, setUltramarineReady] = useState(false);
   const [active, setActive] = useState(section),
@@ -205,7 +219,7 @@ export default function Workspace({
       if (event.key !== "Tab" || !dialog) return;
       const items = [
         ...dialog.querySelectorAll<HTMLElement>(
-          "button:not(:disabled), a[href], input:not(:disabled)",
+          "button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled)",
         ),
       ];
       const first = items[0],
@@ -242,7 +256,7 @@ export default function Workspace({
     let stopped = false;
     (async () => {
       try {
-        const [r, t, p, s] = await Promise.all([
+        const [r, t, p, s, connection] = await Promise.all([
           request<Repository[]>("repositories"),
           request<Thread[]>("investigations"),
           request<Report[]>("reports"),
@@ -251,8 +265,16 @@ export default function Workspace({
             ai: boolean;
             aiRoutes: { features: boolean; detective: boolean };
           }>("status"),
+          request<GitHubConnectionState>("github/connection"),
         ]);
         if (stopped) return;
+        setGitHubConnection(connection);
+        if (
+          new URLSearchParams(window.location.search).get("github") === "error"
+        )
+          setError(
+            "GitHub authorization was cancelled or could not be verified. Connect again from Settings.",
+          );
         setRepos(r);
         setDataLoaded(true);
         setThreads(t);
@@ -315,6 +337,16 @@ export default function Workspace({
       await loadSaved(r);
     });
   }
+  async function disconnectGitHub() {
+    await perform("Disconnecting GitHub", async () => {
+      await request("github/connection", { method: "DELETE" });
+      setGitHubConnection((previous) => ({
+        configured: previous.configured,
+        connected: false,
+      }));
+      notify("GitHub connection removed from this browser.");
+    });
+  }
   async function importRepo() {
     await perform("Connecting to GitHub", async () => {
       if (!configured) {
@@ -322,18 +354,30 @@ export default function Workspace({
           "Configure Supabase and apply the database migration to connect a repository.",
         );
       }
-      const r = await request<Repository>("repositories", {
-        method: "POST",
-        body: JSON.stringify({ url: repoUrl }),
-      });
-      setRepos((prev) => [r, ...prev.filter((p) => p.id !== r.id)]);
-      setRepository(r);
-      localStorage.setItem("phantom-repo", r.id);
-      setImportOpen(false);
-      setRepoUrl("");
-      setActive("repositories");
-      await loadSaved(r);
-      notify("Repository connected. Load history to begin.");
+      const urls = repositoryBatchURLs(repoUrl);
+      setImportResults([]);
+      const batch = await request<{ results: RepositoryCheckResult[] }>(
+        "repositories/batch",
+        { method: "POST", body: JSON.stringify({ urls }) },
+      );
+      setImportResults(batch.results);
+      const connected = batch.results.flatMap((result) =>
+        result.repository ? [result.repository] : [],
+      );
+      if (connected.length) {
+        setRepos((prev) => [
+          ...connected,
+          ...prev.filter((repo) => !connected.some((r) => r.id === repo.id)),
+        ]);
+        const first = connected[0];
+        setRepository(first);
+        localStorage.setItem("phantom-repo", first.id);
+        setActive("repositories");
+        await loadSaved(first);
+      }
+      notify(
+        `${batch.results.filter((r) => r.status === "checked").length} of ${urls.length} repository checks completed.`,
+      );
     });
   }
   async function loadHistory(next = 1, newBranch = branch) {
@@ -777,6 +821,9 @@ export default function Workspace({
                 aria-label="Sign out"
                 onClick={() =>
                   perform("Signing out", async () => {
+                    await request("github/connection", {
+                      method: "DELETE",
+                    }).catch(() => undefined);
                     await browserDatabase()?.auth.signOut();
                     router.replace("/auth");
                     router.refresh();
@@ -1875,6 +1922,11 @@ export default function Workspace({
           )}
           {active === "settings" && (
             <div className="settings-grid">
+              <GitHubConnection
+                connection={gitHubConnection}
+                busy={!!busy}
+                onDisconnect={disconnectGitHub}
+              />
               <section className="panel settings-card">
                 <h2>Profile & appearance</h2>
                 <div className="settings-status">
@@ -2048,43 +2100,33 @@ export default function Workspace({
             </span>
             <h2 id="import-title">A new investigation awaits.</h2>
             <p>
-              Connect a public GitHub repository. We retrieve history through
-              GitHub’s API and never execute repository code.
+              Check up to four public GitHub repositories in one batch. We
+              retrieve real history and never execute repository code.
             </p>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                importRepo();
+            {gitHubConnection.configured && !gitHubConnection.connected && (
+              <GitHubConnection
+                connection={gitHubConnection}
+                busy={!!busy}
+                onDisconnect={disconnectGitHub}
+              />
+            )}
+            <RepositoryBatchForm
+              value={repoUrl}
+              onChange={(value) => {
+                setRepoUrl(value);
+                setImportResults([]);
+                setError("");
               }}
-            >
-              <label>
-                Repository URL
-                <input
-                  autoFocus
-                  type="url"
-                  required
-                  placeholder="https://github.com/owner/repository"
-                  value={repoUrl}
-                  onChange={(e) => setRepoUrl(e.target.value)}
-                  maxLength={300}
-                />
-              </label>
-              {error && (
-                <p role="alert" className="red">
-                  {error}
-                </p>
-              )}
-              {
-                <Button type="submit" disabled={!!busy || !configured}>
-                  Connect repository{" "}
-                  {busy ? (
-                    <LoaderCircle size={16} className="spin" />
-                  ) : (
-                    <ArrowRight size={16} />
-                  )}
-                </Button>
+              onSubmit={importRepo}
+              onOpen={() => setImportOpen(false)}
+              busy={!!busy}
+              configured={
+                configured &&
+                (!gitHubConnection.configured || gitHubConnection.connected)
               }
-            </form>
+              error={error}
+              results={importResults}
+            />
             <small>
               <ShieldCheck size={13} /> Public repositories only. Private
               repository support is planned.

@@ -72,7 +72,15 @@ ULTRAMARINE_API_KEY=YOUR_PAPER_INSTRUMENTS_KEY
 ULTRAMARINE_MODEL=ultramarine-1-flash
 ```
 
-Never commit `.env` or `.env.local`. In this workspace, Google keys are in ignored `.env` and Supabase values are in ignored `.env.local`. `.env.local` takes priority for duplicate variable names. Only the two `NEXT_PUBLIC_` values belong in the browser. No service-role key is used. `GITHUB_TOKEN` is optional; use the least privileged token needed for public repository reads. Anonymous GitHub API quotas are small.
+Never commit `.env` or `.env.local`. In this workspace, Google keys are in ignored `.env` and Supabase values are in ignored `.env.local`. `.env.local` takes priority for duplicate variable names. Only the two `NEXT_PUBLIC_` values belong in the browser. No service-role key is used. Public production uses per-user GitHub App authorization (see below). `GITHUB_TOKEN` is only an optional server-side fallback when App mode is disabled; anonymous quotas are small.
+
+### Public GitHub App connection
+
+The registered app is [PhantomCommit AI](https://github.com/apps/phantomcommit-ai). Configure `GITHUB_AUTH_MODE=app`, `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET`, and `GITHUB_APP_COOKIE_SECRET` in the server environment. Generate the cookie key with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` and store it privately. The callback is `https://phantomcommitai.onrender.com/api/github/callback`. For another installation, register its exact callback and set `APP_ORIGIN` accordingly.
+
+Keep expiring user tokens enabled. No additional repository/account permissions or webhooks are required for public reads. Users sign in to PhantomCommit with Supabase, then choose **Settings → Connect GitHub**. The authorization flow uses state, PKCE, and an owner-bound AES-GCM encrypted HttpOnly cookie. Only the short-lived access token is retained; refresh tokens are discarded. Reconnect after expiry (normally eight hours). Disconnect clears this browser’s connection; revoke the App in GitHub settings to withdraw provider authorization. App mode never falls back to an owner’s shared token.
+
+The repository importer accepts up to four distinct public URLs per batch, runs two checks concurrently, and saves metadata plus up to 20 recent commits per repository. One app request allowance covers the batch. Each result reports its own outcome, so successful checks survive partial failures. GitHub’s per-user and secondary limits still apply; this does not guarantee four checks when an upstream quota is already exhausted.
 
 ### Supabase
 

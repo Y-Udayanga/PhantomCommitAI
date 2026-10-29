@@ -19,9 +19,12 @@ test("live acceptance: login → import → inspect → Gemma → saved chat →
   await page
     .getByRole("button", { name: "Investigate repository", exact: true })
     .click();
-  await page.getByLabel("Repository URL").fill(process.env.E2E_REPOSITORY!);
+  await page.getByLabel("Repository URLs").fill(process.env.E2E_REPOSITORY!);
   await page
-    .getByRole("button", { name: "Connect repository", exact: true })
+    .getByRole("button", { name: "Check repositories", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Open explorer", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Commit history" }),
