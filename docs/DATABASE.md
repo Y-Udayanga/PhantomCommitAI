@@ -42,3 +42,9 @@ Unique keys prevent duplicate repositories per owner, duplicate SHAs per reposit
 5. Sign in through the app and verify repository persistence. The empty workspace should show onboarding rather than a missing-schema error.
 
 Email authentication is already enabled according to the public Auth settings endpoint. Configure Site URL and redirect allowlists for `https://phantomcommitai.onrender.com/auth/callback` and the recovery callback as documented in README before testing verification email and password reset.
+
+## Repository import failure diagnosis
+
+On October 29, 2026 the public GitHub metadata request for octocat/Hello-World returned HTTP 200. The Supabase Data API returned PGRST205 for repositories and PGRST202 for consume_request using the public client identity. The authenticated import route invokes consume_request before GitHub, so missing migration objects can block imports before repository retrieval. Anonymous probes alone do not establish the complete schema or authenticated grants; inspect the project before applying SQL.
+
+Project inspection, logs and advisors remain inaccessible through the connected plugin (permission denied), and the dashboard requires sign-in. The hosted migration has not been applied or the import verified by this agent. Once access is restored, inspect existing tables/functions, apply the initial migration if absent, reload the Data API schema cache if needed, and test an authenticated repository import. Missing table/function errors now have a specific sanitized setup message; other raw database failures remain private.

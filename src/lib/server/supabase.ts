@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { ServiceError } from "./github";
 export const configured = () =>
   !!(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -37,6 +38,14 @@ export async function authenticated() {
   if (error || !user) throw new Error("UNAUTHORIZED");
   return { db, user };
 }
-export function checkDb(error: { message: string } | null) {
-  if (error) throw new Error("DATABASE_ERROR");
+export function checkDb(error: { message: string; code?: string } | null) {
+  if (!error) return;
+  if (["PGRST202", "PGRST205", "42P01", "42883"].includes(error.code || "")) {
+    throw new ServiceError(
+      503,
+      "Database setup is incomplete. An administrator must apply the PhantomCommit AI database migration to the connected Supabase project.",
+    );
+  }
+  // Keep raw database messages (which may include user data) off the client.
+  throw new Error("DATABASE_ERROR");
 }
