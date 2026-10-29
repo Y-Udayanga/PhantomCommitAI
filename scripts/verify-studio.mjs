@@ -13,7 +13,7 @@ await page.goto(
   { waitUntil: "networkidle", timeout: 90000 },
 );
 await expect(page.getByRole("heading", { name: "AI Studio." })).toBeVisible();
-await expect(page.locator(".studio-tool")).toHaveCount(16);
+await expect(page.locator(".studio-tool")).toHaveCount(18);
 await expect(
   page.getByRole("button", { name: "Run investigation" }),
 ).toBeDisabled();
@@ -49,7 +49,7 @@ await page.screenshot({
 expect(errors).toEqual([]);
 console.log(
   JSON.stringify({
-    tools: 16,
+    tools: 18,
     categoryFilter: true,
     taskSelection: true,
     emptyEvidenceBlocksInference: true,
