@@ -4,6 +4,7 @@ const { generate, keys } = vi.hoisted(() => ({
   keys: [] as string[],
 }));
 vi.mock("@google/genai", () => ({
+  ThinkingLevel: { MINIMAL: "minimal" },
   GoogleGenAI: class {
     constructor({ apiKey }: { apiKey: string }) {
       keys.push(apiKey);
@@ -43,13 +44,16 @@ it("rejects invalid structured output", async () => {
     investigate("why removed?", "explain", demoCommits),
   ).rejects.toMatchObject({ status: 502 });
 });
-it("returns quota errors without repeated paid calls", async () => {
+it("tries each fallback once when all Google models are quota limited", async () => {
   vi.stubEnv("GEMINI_API_KEY", "test-only");
   generate.mockRejectedValue({ status: 429 });
   await expect(
     investigate("why removed?", "explain", demoCommits),
   ).rejects.toMatchObject({ status: 429 });
-  expect(generate).toHaveBeenCalledTimes(1);
+  expect(generate).toHaveBeenCalledTimes(9);
+  expect(
+    new Set(generate.mock.calls.map(([request]) => request.model)).size,
+  ).toBe(9);
 });
 it("passes each configured key to the SDK only for its intended route", async () => {
   vi.stubEnv("GEMINI_API_KEY", "feature-unit-key");
@@ -66,7 +70,7 @@ it("passes each configured key to the SDK only for its intended route", async ()
   ).toBe("detective");
   expect(keys).toEqual(["feature-unit-key", "detective-unit-key"]);
 });
-it("retries one temporary provider failure using the same key and never falls back", async () => {
+it("falls back on temporary failure using the same route-specific key", async () => {
   vi.stubEnv("GEMINI_API_KEY", "feature-unit-key");
   vi.stubEnv("GEMINI_DETECTIVE_API_KEY", "detective-unit-key");
   generate.mockRejectedValueOnce({ status: 503 }).mockResolvedValueOnce({
@@ -74,5 +78,6 @@ it("retries one temporary provider failure using the same key and never falls ba
   });
   await investigate("Explain the changes.", "explain", demoCommits);
   expect(generate).toHaveBeenCalledTimes(2);
+  expect(generate.mock.calls[1][0].model).toBe("gemini-3.8-flash");
   expect(keys).toEqual(["feature-unit-key"]);
 });

@@ -18,7 +18,7 @@ export function ProviderSelect({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value as AIProvider)}
       >
-        <option value="gemma">Google Gemma</option>
+        <option value="gemma">Gemma 4 · automatic Gemini fallback</option>
         <option value="ultramarine">Ultramarine</option>
       </select>
     </label>

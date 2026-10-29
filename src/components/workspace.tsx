@@ -1758,8 +1758,15 @@ export default function Workspace({
                                     ? "YOU"
                                     : (m.provider === "ultramarine"
                                         ? "ULTRAMARINE"
-                                        : "GEMMA") + " · GENERATED ANALYSIS"}
+                                        : m.model?.startsWith("gemini-")
+                                          ? "GEMINI"
+                                          : "GEMMA") + " · GENERATED ANALYSIS"}
                                 </span>
+                                {m.role !== "user" && m.model && (
+                                  <small className="muted">
+                                    Model: {m.model}
+                                  </small>
+                                )}
                                 <p>{m.content}</p>
                                 {m.evidence_json?.map((f, j) => (
                                   <EvidenceCard key={j} finding={f} />

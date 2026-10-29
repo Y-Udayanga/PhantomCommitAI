@@ -74,6 +74,10 @@ ULTRAMARINE_MODEL=ultramarine-1-flash
 
 Never commit `.env` or `.env.local`. In this workspace, Google keys are in ignored `.env` and Supabase values are in ignored `.env.local`. `.env.local` takes priority for duplicate variable names. Only the two `NEXT_PUBLIC_` values belong in the browser. No service-role key is used. Public production uses per-user GitHub App authorization (see below). `GITHUB_TOKEN` is only an optional server-side fallback when App mode is disabled; anonymous quotas are small.
 
+### Google model fallback
+
+Google analysis starts with Gemma 4 26B and automatically falls back on quota/availability errors through Gemini 3.8 Flash, 3.6 Flash, 3.7 Flash, 3.5 Flash, 3.5 Flash-Lite, 2.5 Flash-Lite, 3 Flash Preview (the published endpoint for “3 Flash”), and 3.1 Flash-Lite. Each model is attempted at most once within a 50-second provider budget. Unavailable models are skipped. Two malformed responses stop the request without saving findings. Key/authentication errors and safety refusals stop immediately. Each route retains its configured Google key; shared project quotas may affect every fallback. Responses record the actual model, and cache identity includes the routing chain.
+
 ### Public GitHub App connection
 
 The registered app is [PhantomCommit AI](https://github.com/apps/phantomcommit-ai). Configure `GITHUB_AUTH_MODE=app`, `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET`, and `GITHUB_APP_COOKIE_SECRET` in the server environment. Generate the cookie key with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` and store it privately. The callback is `https://phantomcommitai.onrender.com/api/github/callback`. For another installation, register its exact callback and set `APP_ORIGIN` accordingly.

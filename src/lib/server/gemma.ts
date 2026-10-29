@@ -1,13 +1,13 @@
 import "server-only";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { answerSchema, validateEvidence } from "../analysis";
 import { selectContext } from "../context";
 import type { Commit } from "../types";
 import { ServiceError } from "./github";
-import { gemmaCredential } from "./ai-config";
+import { gemmaCredential, googleModelChain } from "./ai-config";
 import { taskInstruction, type AnalysisMode } from "../ai-tasks";
 
-export const PROMPT_VERSION = "evidence-v2-task-routing";
+export const PROMPT_VERSION = "evidence-v3-google-fallback";
 export async function investigate(
   question: string,
   mode: AnalysisMode,
@@ -20,8 +20,8 @@ export async function investigate(
       503,
       `The ${credential.slot} Gemma key is not configured. Repository browsing remains available.`,
     );
-  const model = process.env.GEMMA_MODEL || "gemma-4-26b-a4b-it";
-  if (!["gemma-4-26b-a4b-it", "gemma-4-31b-it"].includes(model))
+  const models = googleModelChain();
+  if (!["gemma-4-26b-a4b-it", "gemma-4-31b-it"].includes(models[0]))
     throw new ServiceError(503, "Configure a supported Gemma model.");
   const selected = selectContext(commits, question);
   const context = JSON.stringify(selected);
@@ -35,32 +35,53 @@ HISTORY: ${JSON.stringify(history.slice(-6)).slice(0, 8000)}
 QUESTION: ${JSON.stringify(question)}
 EVIDENCE: ${context}`;
   const ai = new GoogleGenAI({ apiKey: credential.key });
-  for (let attempt = 0; attempt < 2; attempt++) {
+  const deadline = Date.now() + 50000;
+  let quotaReached = false;
+  let invalidResponses = 0;
+  for (const model of models) {
+    const remaining = deadline - Date.now();
+    if (remaining < 1000) break;
     try {
       const response = await ai.models.generateContent({
         model,
         contents: prompt,
         config: {
           maxOutputTokens: 5000,
-          httpOptions: { timeout: 18000, retryOptions: { attempts: 1 } },
+          ...(model.startsWith("gemma-")
+            ? { thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } }
+            : { responseMimeType: "application/json" }),
+          httpOptions: {
+            timeout: Math.min(18000, remaining),
+            retryOptions: { attempts: 1 },
+          },
         },
       });
       const text = (response.text || "")
         .trim()
         .replace(/^```(?:json)?\s*/, "")
         .replace(/\s*```$/, "");
-      const parsed = answerSchema.safeParse(JSON.parse(text));
-      if (!parsed.success)
+      // Do not route around a safety refusal using another model.
+      if (
+        response.promptFeedback?.blockReason ||
+        response.candidates?.some((c) =>
+          ["SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST"].includes(
+            String(c.finishReason),
+          ),
+        )
+      )
         throw new ServiceError(
-          502,
-          "Gemma returned an invalid analysis. No findings were saved. Please retry.",
+          422,
+          "Google could not analyze this content. Try a smaller code excerpt.",
         );
+      const parsed = answerSchema.safeParse(JSON.parse(text));
+      if (!parsed.success) throw new SyntaxError("Invalid analysis structure");
       return {
         answer: parsed.data.answer,
         findings: parsed.data.findings.map((f) =>
           validateEvidence(f, selected),
         ),
         model,
+        fallbackUsed: model !== models[0],
         promptVersion: PROMPT_VERSION,
         mode,
         keySlot: credential.slot,
@@ -72,15 +93,18 @@ EVIDENCE: ${context}`;
         typeof error === "object" && error !== null && "status" in error
           ? Number(error.status)
           : 0;
-      if ((status === 503 || status === 500) && attempt === 0) {
-        await new Promise((r) => setTimeout(r, 500));
+      if (error instanceof SyntaxError) {
+        invalidResponses++;
+        if (invalidResponses < 2) continue;
+        throw new ServiceError(
+          502,
+          "Google returned incomplete or invalid analysis from two models. No findings were saved. Try a smaller scope.",
+        );
+      }
+      if ([429, 404, 500, 502, 503, 504].includes(status)) {
+        quotaReached ||= status === 429;
         continue;
       }
-      if (status === 429)
-        throw new ServiceError(
-          429,
-          "Gemma quota or rate limit reached. Try again later.",
-        );
       if (status === 400 || status === 401 || status === 403)
         throw new ServiceError(
           503,
@@ -92,5 +116,10 @@ EVIDENCE: ${context}`;
       );
     }
   }
-  throw new ServiceError(503, "Gemma is temporarily unavailable.");
+  throw new ServiceError(
+    quotaReached ? 429 : 503,
+    quotaReached
+      ? "Available Google models reached quota or could not complete within the request limit. Try again later; switching models cannot bypass a shared project quota."
+      : "Google models are temporarily unavailable. Please retry with a smaller scope.",
+  );
 }

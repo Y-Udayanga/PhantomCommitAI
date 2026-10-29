@@ -5,7 +5,7 @@ import {
   ultramarineKey,
   ultramarineModel,
 } from "./ultramarine";
-import { gemmaCredential } from "./ai-config";
+import { gemmaCredential, googleModelChain } from "./ai-config";
 import type { AIProvider } from "../ai-provider";
 import type { AnalysisMode } from "../ai-tasks";
 import type { Commit } from "../types";
@@ -24,7 +24,7 @@ export function providerIdentity(provider: AIProvider, mode: AnalysisMode) {
     ? { key: ultramarineKey(), model: ultramarineModel() }
     : {
         key: gemmaCredential(mode).key,
-        model: process.env.GEMMA_MODEL || "gemma-4-26b-a4b-it",
+        model: googleModelChain().join(">"),
       };
 }
 export async function analyze(
