@@ -16,7 +16,7 @@ The ghost is forgotten functionality preserved in Git. Code Graveyard turns remo
 
 **Before publishing:** add a real successful deployment URL or an actual recorded demo. No public deployment has been verified yet.
 
-Locally, `/demo` provides a visibly labeled synthetic repository with a removed session check, a retired payment validator, a renamed rate limiter and an audit addition. It does not manufacture AI responses. Live mode requires Supabase and Google AI Studio credentials.
+The application now uses real GitHub history only. AI Studio offers 18 focused investigations and file/date scopes; AI Detective uses a separately configured Gemma key, or the user can explicitly choose Ultramarine. Empty workspaces stay empty until a user imports a repository. There are no sample histories or simulated AI responses in the runtime.
 
 Suggested recording: import a small public repository; inspect a commit; open its removed code; compare snapshots; ask Gemma about possible effects; inspect the evidence references; ask a follow-up; reopen the saved investigation and export Markdown.
 
@@ -28,7 +28,7 @@ Suggested recording: import a small public repository; inspect a commit; open it
 
 Next.js handles the workspace and authenticated API. GitHub REST supplies metadata, parent SHAs and patches. Deterministic hunk parsing identifies removed lines and preserves the difference between deletion, rename and missing evidence. Supabase stores owned repositories, commits, runs, findings, conversations and reports, with row policies following parent ownership.
 
-Gemma receives selected excerpts rather than entire repositories. Lexical ranking favors commit-message, path and patch matches to a developer’s question. The official Google SDK calls `gemma-4-26b-a4b-it` through the Gemini API. JSON output is checked with Zod, then references are matched against retrieved SHAs, paths and changed-line quotes. Unsupported references are marked insufficient.
+Gemma receives selected excerpts rather than entire repositories. Lexical ranking favors commit-message, path and patch matches to a developer’s question. Users choose a provider explicitly. Ultramarine uses Paper Instruments’ documented API and the same citation checks. The official Google SDK calls `gemma-4-26b-a4b-it` through the Gemini API. JSON output is checked with Zod, then references are matched against retrieved SHAs, paths and changed-line quotes. Unsupported references are marked insufficient.
 
 This solves only part of AI reliability: matching a citation does not prove the interpretation. Possible regressions remain hypotheses until tested. Intent stays unknown unless the available history documents it. Restoration proposals are displayed for review; they are never committed or executed.
 
@@ -36,7 +36,7 @@ This solves only part of AI reliability: matching a citation does not prove the 
 
 The implementation separates deterministic observations from model interpretation, bounds work for serverless requests, caches inspected details, and handles unavailable patches and provider quotas. One review caught that cached file evidence was being discarded by history pagination; another added public-visibility checks before a server token can retrieve repository content.
 
-Tests cover URL normalization, diff behavior, evidence rejection, provider failures and response parsing. The local PostgreSQL policy suite runs the actual migration with separate identities. Playwright checks the synthetic browser flow and mobile navigation. Credential-gated suites exist for the full live investigation and Supabase isolation.
+Tests cover URL normalization, diff behavior, evidence rejection, provider failures and response parsing. The local PostgreSQL policy suite runs the actual migration with separate identities. Playwright checks landing, authentication, legacy URL redirection and mobile layout. Test-only synthetic diffs support deterministic regression testing and are excluded from application code. Credential-gated suites exist for the full live investigation and Supabase isolation.
 
 **Before publishing:** copy the final executed results from `VERIFICATION.md`. Do not present skipped live checks as passing. Add observations from an actual Gemma investigation and any failures encountered there.
 

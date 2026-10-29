@@ -8,3 +8,4 @@ coverage/
 *.tsbuildinfo
 .vercel/
 public/monaco/
+docs/screenshots/render-verification-required.png

@@ -13,7 +13,7 @@ Current source code cannot tell the whole story of a regression. PhantomCommit p
 ## Implemented application
 
 - Responsive real-data investigation workspace. No sample repositories, commits, analytics or AI responses are loaded by the application. Legacy `/demo` links redirect to the real workspace.
-- AI Studio with 16 focused tools: explanations, historical questions, risk review, root cause investigation, regression suspects, deleted-code investigation, lineage review, security drift, forgotten-feature leads, restoration plans, test suggestions, impact summaries, intent classification, factual storytelling, next steps and reports.
+- AI Studio with 18 focused tools: explanations, historical questions, risk review, root cause investigation, regression suspects, deleted-code investigation, lineage review, security drift, forgotten-feature leads, restoration plans, test suggestions, impact summaries, intent classification, factual storytelling, next steps and reports.
 - Supabase email sign-up, verification callback, sign-in, password recovery, logout, server-verified protected pages and APIs.
 - Public repository import, branch selection, 20-commit history pages, detail caching, resumable batches of up to three commits.
 - File additions, removals, modifications, renames, hunk line extraction, large-removal and validation/error-handling review leads.
@@ -27,7 +27,7 @@ The source is implemented. Two server-only Gemma key routes support feature anal
 
 ## Stack
 
-Next.js App Router, React, TypeScript, Tailwind CSS, shadcn-style Radix Slot button composition, Lucide, Motion, React Flow, Recharts, Monaco, Zod, Supabase PostgreSQL/Auth/SSR and the official `@google/genai` SDK. Exact package versions are pinned in `package.json` and `package-lock.json`.
+Next.js App Router, React, TypeScript, Tailwind CSS, shadcn-style Radix Slot button composition, Lucide, Motion, React Flow, Recharts, Monaco, Zod, Supabase PostgreSQL/Auth/SSR, the official `@google/genai` SDK, and the documented Ultramarine Chat Completions API. Hosting targets Render. Exact package versions are pinned in `package.json` and `package-lock.json`.
 
 ## Architecture
 
@@ -68,6 +68,8 @@ GEMINI_API_KEY=YOUR_FEATURE_ANALYSIS_KEY
 GEMINI_DETECTIVE_API_KEY=YOUR_DETECTIVE_CHAT_KEY
 GEMMA_MODEL=gemma-4-26b-a4b-it
 GITHUB_TOKEN=
+ULTRAMARINE_API_KEY=YOUR_PAPER_INSTRUMENTS_KEY
+ULTRAMARINE_MODEL=ultramarine-1-flash
 ```
 
 Never commit `.env` or `.env.local`. In this workspace, Google keys are in ignored `.env` and Supabase values are in ignored `.env.local`. `.env.local` takes priority for duplicate variable names. Only the two `NEXT_PUBLIC_` values belong in the browser. No service-role key is used. `GITHUB_TOKEN` is optional; use the least privileged token needed for public repository reads. Anonymous GitHub API quotas are small.
@@ -88,7 +90,7 @@ Create a key in [Google AI Studio](https://aistudio.google.com/). Confirm access
 
 `GEMINI_API_KEY` serves AI Studio, explanations, risk reviews, restoration and reports. `GEMINI_DETECTIVE_API_KEY` serves conversational AI Detective requests. There is no silent key fallback. Separate keys in the same Google project share project quota; key presence is not proof of provider availability.
 
-Gemma is the sole generative provider. The service calls `GoogleGenAI.models.generateContent`, asks for JSON in the prompt and validates it with Zod; it does not assume constrained JSON generation support. Selected public code is processed by Google after explicit consent. This is hosted inference, not fully local or offline AI.
+Gemma and Ultramarine are explicit provider choices. No request silently switches providers. Ultramarine uses `ULTRAMARINE_API_KEY` (or `PAPERINSTRUMENTS_API_KEY`) and `ULTRAMARINE_MODEL=ultramarine-1-flash`. It supports all 18 focused tasks and Detective chat, including evidence challenge and proposed patch review. The service calls `GoogleGenAI.models.generateContent`, asks for JSON in the prompt and validates it with Zod; it does not assume constrained JSON generation support. Selected public code is processed by the selected provider after explicit consent. Switching providers clears consent. Ultramarine requests go to Paper Instruments and do not expose internal reasoning to the user. This is hosted inference, not fully local or offline AI.
 
 ## First investigation
 
@@ -137,7 +139,7 @@ Responses use `{data: ...}` or `{error: {code, message}}`. All endpoints except 
 | `/api/reports`                                     | GET                  | Saved reports                                                           |
 | `/api/profile`                                     | GET / PATCH / DELETE | Profile / display name / delete investigation data                      |
 
-`/api/ai` takes `repository_id`, optional `sha` and `thread_id`, `mode`, `question`, and `consent:true`. All writes are awaited. There is no background process or dependence on a persistent Vercel filesystem.
+`/api/ai` takes `provider` (`gemma` or `ultramarine`), `repository_id`, optional `sha` and `thread_id`, `mode`, `question`, and `consent:true`. All writes are awaited. There is no background process or dependence on a persistent Vercel filesystem.
 
 ## Development and verification
 
@@ -172,7 +174,7 @@ See [verification](docs/VERIFICATION.md), [deployment](docs/DEPLOYMENT.md) and t
 - English keyword heuristics can miss checks or match comments. AI structured output can fail validation; no result is saved as successful in that case.
 - AI persistence consists of awaited database operations, not one database transaction. A write failure can leave a failed run with partial records; retry or delete that repository’s investigation data. Interrupted running runs are resumable by re-running cached batches.
 - Public report links and automatic patch application are not implemented. Export Markdown or print instead. Registration/verification and password recovery require working Supabase email delivery.
-- AI quotas, network availability and free-tier service limits apply. There is no deployment claim or fabricated benchmark.
+- AI quotas, network availability and free-tier service limits apply. There is no fabricated benchmark. The current deployment status is recorded in `docs/DEPLOYMENT.md`.
 
 ## Screenshots
 
