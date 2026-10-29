@@ -9,7 +9,7 @@ import { gemmaCredential, googleModelChain } from "./ai-config";
 import type { AIProvider } from "../ai-provider";
 import type { AnalysisMode } from "../ai-tasks";
 import type { Commit } from "../types";
-export const ANALYSIS_VERSION = `${PROMPT_VERSION}-providers-v1`;
+export const ANALYSIS_VERSION = `${PROMPT_VERSION}-providers-v2-structured`;
 export function providerConfiguration() {
   return {
     gemma: {

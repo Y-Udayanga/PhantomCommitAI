@@ -80,7 +80,14 @@ Task: ${mode}. ${taskInstruction(mode)}`;
             ],
             reasoning_effort: "low",
             max_completion_tokens: 8192,
-            response_format: { type: "json_object" },
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "investigation",
+                strict: true,
+                schema: z.toJSONSchema(answerSchema),
+              },
+            },
             stream: false,
           }),
           signal: AbortSignal.timeout(35000),

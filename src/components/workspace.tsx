@@ -204,6 +204,16 @@ export default function Workspace({
     setResult(null);
   }
   const operation = useRef(false);
+  const chatMessages = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (active !== "detective" || !messages.length) return;
+    chatMessages.current?.lastElementChild?.scrollIntoView({
+      block: "nearest",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+  }, [active, messages]);
   const notify = (text: string) => setToast(text);
   useEffect(() => {
     if (!toast) return;
@@ -475,13 +485,18 @@ export default function Workspace({
     question = query,
     scope: InvestigationScope = {},
   ) {
-    if (!repository) return;
+    if (!repository) {
+      setError(
+        "Select a repository and inspect a commit before asking the detective.",
+      );
+      return;
+    }
     await perform(
       `${providerLabel(provider)} is following the evidence`,
       async () => {
         if (!consent)
           throw new Error(
-            "Confirm that selected code excerpts may be processed by Google.",
+            `Confirm that selected code excerpts may be processed by ${providerLabel(provider)}.`,
           );
         setResult(null);
         const a = await request<Analysis>("ai", {
@@ -511,12 +526,12 @@ export default function Workspace({
           },
         ]);
         setQuery("");
-        const [t, p] = await Promise.all([
+        const [t, p] = await Promise.allSettled([
           request<Thread[]>("investigations"),
           request<Report[]>("reports"),
         ]);
-        setThreads(t);
-        setReports(p);
+        if (t.status === "fulfilled") setThreads(t.value);
+        if (p.status === "fulfilled") setReports(p.value);
         notify("Analysis saved to your investigation history.");
       },
     );
@@ -1720,7 +1735,12 @@ export default function Workspace({
                             New investigation <Plus size={14} />
                           </button>
                         </div>
-                        <div className="chat-messages">
+                        <div
+                          className="chat-messages"
+                          ref={chatMessages}
+                          aria-live="polite"
+                          aria-busy={!!busy}
+                        >
                           {!messages.length ? (
                             <div className="detective-welcome">
                               <div className="detective-orb">
@@ -1812,6 +1832,17 @@ export default function Workspace({
                             maxLength={2500}
                           />
                           {aiConsent}
+                          {error && (
+                            <p role="alert" className="red">
+                              {error}
+                            </p>
+                          )}
+                          {busy && (
+                            <p role="status">
+                              <LoaderCircle className="spin" size={16} /> {busy}
+                              …
+                            </p>
+                          )}
                           <div className="composer-footer">
                             <span>
                               <ShieldCheck size={12} />
@@ -1828,7 +1859,12 @@ export default function Workspace({
                                 !chatReady
                               }
                             >
-                              <Send size={15} /> Investigate
+                              {busy ? (
+                                <LoaderCircle size={15} className="spin" />
+                              ) : (
+                                <Send size={15} />
+                              )}
+                              {busy ? "Investigating…" : "Investigate"}
                             </Button>
                           </div>
                         </form>

@@ -37,7 +37,10 @@ it("uses the documented endpoint and parameters, validating only final content",
   expect(url).toBe("https://api.paperinstruments.com/v1/chat/completions");
   expect(body.model).toBe("ultramarine-1-flash");
   expect(body.reasoning_effort).toBe("low");
-  expect(body.response_format).toEqual({ type: "json_object" });
+  expect(body.response_format).toMatchObject({
+    type: "json_schema",
+    json_schema: { name: "investigation", strict: true },
+  });
   expect(body.tools).toBeUndefined();
   expect(result.provider).toBe("ultramarine");
   expect(result.answer).toBe("Intent remains unknown.");
