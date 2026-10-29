@@ -269,6 +269,12 @@ export default function Workspace({
         ]);
         if (stopped) return;
         setGitHubConnection(connection);
+        const pendingRepo = sessionStorage.getItem("phantom-pending-repository");
+        if (pendingRepo && new URLSearchParams(window.location.search).has("github")) {
+          setRepoUrl(pendingRepo);
+          setImportOpen(true);
+          sessionStorage.removeItem("phantom-pending-repository");
+        }
         if (
           new URLSearchParams(window.location.search).get("github") === "error"
         )
@@ -355,6 +361,15 @@ export default function Workspace({
         );
       }
       const urls = repositoryBatchURLs(repoUrl);
+      const connection = await request<GitHubConnectionState>("github/connection");
+      setGitHubConnection(connection);
+      if (connection.configured && !connection.connected) {
+        sessionStorage.setItem("phantom-pending-repository", repoUrl);
+        window.location.assign(
+          new URL("/api/github/connect", window.location.origin).href,
+        );
+        return;
+      }
       setImportResults([]);
       const batch = await request<{ results: RepositoryCheckResult[] }>(
         "repositories/batch",
@@ -2122,10 +2137,7 @@ export default function Workspace({
               onSubmit={importRepo}
               onOpen={() => setImportOpen(false)}
               busy={!!busy}
-              configured={
-                configured &&
-                (!gitHubConnection.configured || gitHubConnection.connected)
-              }
+              configured={configured}
               error={error}
               results={importResults}
             />
