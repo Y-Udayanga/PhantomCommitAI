@@ -54,6 +54,6 @@ During project creation Render displayed an Add Card identity-verification step 
 
 ## Current status
 
-Source and environment preparation are in progress. No service or live deployment URL has been confirmed yet. Replace this status only after a real deploy reaches `live` and its public endpoints have been checked.
+On October 29, 2026, source revision `1cd2063` was pushed to `main` and confirmed on GitHub. The Render web-service form was prepared for free compute in Singapore; the required environment settings were imported without printing private values. Submitting Deploy opened the Add Card modal again. The Render connector still reported no services, so no service, project or live deployment URL is claimed. Complete the account verification in the retained dashboard tab, then submit the prepared form and monitor the resulting build.
 
 References: [Render Next.js](https://render.com/docs/deploy-nextjs-app), [environment settings](https://render.com/docs/configure-environment-variables), [deployment lifecycle](https://render.com/docs/deploys), [Ultramarine API](https://docs.paperinstruments.com/docs/ultramarine/chat-completions).
