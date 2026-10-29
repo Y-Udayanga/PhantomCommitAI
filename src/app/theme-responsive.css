@@ -338,6 +338,147 @@ html[data-theme="light"] .react-flow__controls button {
     padding-right: 20px;
   }
 }
+
+/* Reports must accommodate long repository names, paths and saved AI text. */
+.report-intro {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: start;
+}
+.report-intro > div,
+.report-heading {
+  min-width: 0;
+}
+.report-intro .btn {
+  margin: 0;
+  align-self: center;
+}
+.report-card {
+  max-width: 100%;
+  min-width: 0;
+}
+.report-card-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 20px;
+}
+.report-heading h2 {
+  overflow-wrap: anywhere;
+}
+.report-heading p {
+  font-size: 11px;
+}
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.report-actions .btn,
+.report-intro > .btn {
+  min-height: 44px;
+}
+.report-body {
+  min-width: 0;
+}
+.report-body > p,
+.report-body pre,
+.report-body h3,
+.report-body code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.report-body pre {
+  white-space: pre-wrap;
+}
+.report-body .finding > .row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.report-body .evidence-row {
+  min-width: 0;
+}
+.report-body .evidence-row code {
+  min-width: 0;
+  max-width: 100%;
+}
+.report-body .evidence-row > span {
+  margin-left: 0;
+}
+.notice > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .report-intro {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+  .report-intro > .btn {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    margin: 0;
+  }
+  .report-card-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 650px) {
+  .report-intro {
+    padding: 20px;
+    gap: 14px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .report-intro h2 {
+    font-size: 18px;
+    line-height: 1.4;
+  }
+  .report-intro p,
+  .report-intro .consent {
+    font-size: 12px;
+  }
+  .report-intro .tool-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .report-card-header {
+    padding: 20px 16px;
+    gap: 16px;
+  }
+  .report-heading h2 {
+    font-size: 18px;
+    margin: 8px 0;
+  }
+  .report-heading .eyebrow {
+    font-size: 9px;
+  }
+  .report-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .report-actions .btn {
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px;
+    font-size: 12px;
+  }
+  .report-body {
+    padding: 0 16px 20px;
+  }
+  .report-body .finding {
+    padding: 14px;
+  }
+  .report-body .finding h3 {
+    font-size: 14px;
+  }
+  .report-body .evidence-row code {
+    font-size: 11px;
+  }
+  .report-body .evidence-row > span {
+    font-size: 10px;
+  }
+}
+
 @media print {
   .theme-toggle,
   .auth-theme {

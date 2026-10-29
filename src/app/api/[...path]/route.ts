@@ -70,6 +70,7 @@ async function handle(req: NextRequest, ctx: Context) {
       return NextResponse.json({
         data: {
           database: configured(),
+          github: { tokenConfigured: !!process.env.GITHUB_TOKEN?.trim() },
           ai: gemmaConfiguration().features,
           aiRoutes: gemmaConfiguration(),
           providers: providerConfiguration(),
@@ -244,7 +245,9 @@ async function handle(req: NextRequest, ctx: Context) {
       }
       if (path[2] === "branches" && req.method === "GET") {
         await assertPublic(repository);
-        const r = await github(`${base}/branches?per_page=100`);
+        const r = await github(`${base}/branches?per_page=100`, {
+          maxAgeSeconds: 60,
+        });
         return ok({ branches: r.data, more: r.more });
       }
       if (path[2] === "commits" && path.length === 3 && req.method === "GET") {
@@ -263,6 +266,7 @@ async function handle(req: NextRequest, ctx: Context) {
         await assertPublic(repository);
         const r = await github(
           `${base}/commits?per_page=20&page=${page}&sha=${encodeURIComponent(branch)}`,
+          { maxAgeSeconds: 30 },
         );
         const commits = await Promise.all(
           (r.data as unknown[])
@@ -694,9 +698,25 @@ async function handle(req: NextRequest, ctx: Context) {
       status = 400;
       message = (error as Error).message;
     }
+    const retryAt = error instanceof ServiceError ? error.retryAt : undefined;
+    const retryAfter = retryAt
+      ? Math.max(1, Math.ceil((retryAt - Date.now()) / 1000))
+      : undefined;
     return NextResponse.json(
-      { error: { code: status, message } },
-      { status, headers: { "Cache-Control": "no-store" } },
+      {
+        error: {
+          code: status,
+          message,
+          ...(retryAt ? { retry_at: new Date(retryAt).toISOString() } : {}),
+        },
+      },
+      {
+        status,
+        headers: {
+          "Cache-Control": "no-store",
+          ...(retryAfter ? { "Retry-After": String(retryAfter) } : {}),
+        },
+      },
     );
   }
 }

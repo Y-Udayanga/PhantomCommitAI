@@ -1,15 +1,109 @@
 import "server-only";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 import type { Commit, FileChange } from "../types";
 export class ServiceError extends Error {
   constructor(
     public status: number,
     message: string,
+    public retryAt?: number,
   ) {
     super(message);
   }
 }
-export async function github(path: string) {
+type GitHubResult = {
+  data: Awaited<ReturnType<Response["json"]>>;
+  more: boolean;
+};
+type CachedResponse = GitHubResult & {
+  etag: string | null;
+  fetchedAt: number;
+  bytes: number;
+};
+const responses = new Map<string, CachedResponse>();
+const pending = new Map<string, Promise<GitHubResult>>();
+const cooldowns = new Map<string, number>();
+let cachedBytes = 0;
+const cacheLimit = 8 * 1024 * 1024;
+
+export function clearGitHubCache() {
+  responses.clear();
+  pending.clear();
+  cooldowns.clear();
+  cachedBytes = 0;
+}
+function remember(key: string, result: CachedResponse) {
+  const previous = responses.get(key);
+  if (previous) {
+    cachedBytes -= previous.bytes;
+    responses.delete(key);
+  }
+  if (result.bytes > cacheLimit) return;
+  while (responses.size >= 100 || cachedBytes + result.bytes > cacheLimit) {
+    const oldest = responses.keys().next().value;
+    if (!oldest) break;
+    cachedBytes -= responses.get(oldest)!.bytes;
+    responses.delete(oldest);
+  }
+  responses.set(key, result);
+  cachedBytes += result.bytes;
+}
+function retryTime(response: Response) {
+  const now = Date.now();
+  const retry = response.headers.get("retry-after");
+  const seconds = retry === null ? NaN : Number(retry);
+  const reset =
+    response.headers.get("x-ratelimit-remaining") === "0"
+      ? Number(response.headers.get("x-ratelimit-reset")) * 1000
+      : NaN;
+  const candidate = retry
+    ? Number.isFinite(seconds)
+      ? now + seconds * 1000
+      : Date.parse(retry)
+    : reset;
+  return Number.isFinite(candidate) && candidate > now
+    ? Math.min(candidate, now + 86400000)
+    : now + 60000;
+}
+export async function github(
+  path: string,
+  options: { maxAgeSeconds?: number } = {},
+): Promise<GitHubResult> {
+  const token = process.env.GITHUB_TOKEN?.trim();
+  const credential = createHash("sha256")
+    .update(token || "anonymous")
+    .digest("hex");
+  const key = credential + path;
+  const cached = responses.get(key);
+  if (
+    cached &&
+    options.maxAgeSeconds &&
+    Date.now() - cached.fetchedAt < options.maxAgeSeconds * 1000
+  )
+    return { data: cached.data, more: cached.more };
+  const blockedUntil = cooldowns.get(credential);
+  if (blockedUntil && blockedUntil > Date.now())
+    throw new ServiceError(
+      429,
+      "GitHub is temporarily rate limited. Saved evidence remains available.",
+      blockedUntil,
+    );
+  if (pending.has(key)) return pending.get(key)!;
+  const work = fetchGitHub(path, token, credential, key, cached);
+  pending.set(key, work);
+  try {
+    return await work;
+  } finally {
+    pending.delete(key);
+  }
+}
+async function fetchGitHub(
+  path: string,
+  token: string | undefined,
+  credential: string,
+  key: string,
+  cached?: CachedResponse,
+): Promise<GitHubResult> {
   for (let attempt = 0; attempt < 2; attempt++) {
     let response: Response;
     try {
@@ -17,9 +111,8 @@ export async function github(path: string) {
         headers: {
           Accept: "application/vnd.github+json",
           "X-GitHub-Api-Version": "2022-11-28",
-          ...(process.env.GITHUB_TOKEN
-            ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
-            : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(cached?.etag ? { "If-None-Match": cached.etag } : {}),
         },
         signal: AbortSignal.timeout(6000),
         cache: "no-store",
@@ -28,24 +121,61 @@ export async function github(path: string) {
       if (!attempt) continue;
       throw new ServiceError(504, "GitHub timed out. Try again.");
     }
-    if (response.status === 404)
+    if (response.status === 304 && cached) {
+      cached.fetchedAt = Date.now();
+      return { data: cached.data, more: cached.more };
+    }
+    if (response.status === 404) {
+      if (cached) {
+        responses.delete(key);
+        cachedBytes -= cached.bytes;
+      }
       throw new ServiceError(
         404,
         "Public repository or revision not found. Private repositories are not supported.",
       );
+    }
     if (response.status === 409) return { data: [], more: false };
-    if (response.status === 403 || response.status === 429)
+    if (response.status === 401)
+      throw new ServiceError(
+        503,
+        "GitHub authentication failed. An administrator must check the server GitHub token.",
+      );
+    if (response.status === 403 || response.status === 429) {
+      const body = await response.json().catch(() => ({}));
+      const limited =
+        response.status === 429 ||
+        response.headers.get("x-ratelimit-remaining") === "0" ||
+        response.headers.has("retry-after") ||
+        /rate limit|abuse detection/i.test(body.message || "");
+      if (!limited)
+        throw new ServiceError(
+          403,
+          "GitHub denied access. Check repository visibility and the configured token permissions.",
+        );
+      const until = retryTime(response);
+      if (cooldowns.size >= 4) cooldowns.delete(cooldowns.keys().next().value!);
+      cooldowns.set(credential, until);
       throw new ServiceError(
         429,
-        `GitHub request limit reached. Try after ${response.headers.get("x-ratelimit-reset") ? new Date(Number(response.headers.get("x-ratelimit-reset")) * 1000).toISOString() : "a short wait"}.`,
+        "GitHub is temporarily rate limited. Saved evidence remains available.",
+        until,
       );
+    }
     if (response.status >= 500 && !attempt) continue;
     if (!response.ok)
       throw new ServiceError(502, "GitHub could not complete this request.");
-    return {
+    const result = {
       data: await response.json(),
       more: response.headers.get("link")?.includes('rel="next"') || false,
     };
+    remember(key, {
+      ...result,
+      etag: response.headers.get("etag"),
+      fetchedAt: Date.now(),
+      bytes: Buffer.byteLength(JSON.stringify(result)),
+    });
+    return result;
   }
   throw new ServiceError(502, "GitHub unavailable.");
 }

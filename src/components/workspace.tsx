@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { Brand, Ghost } from "./brand";
 import { EvidenceCard } from "./evidence-card";
+import { ReportCard, ReportIntro } from "./report-card";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import AIStudio from "./ai-studio";
@@ -113,7 +114,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers: { "Content-Type": "application/json", ...options.headers },
   });
   const j = await r.json();
-  if (!r.ok) throw new Error(j.error?.message || "Request failed.");
+  if (!r.ok) {
+    const retryAt = Date.parse(j.error?.retry_at || "");
+    if (r.status === 429 && Number.isFinite(retryAt)) {
+      throw new Error(
+        `GitHub is temporarily rate limited. Try again at ${new Date(retryAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Saved investigations and reports remain available.`,
+      );
+    }
+    throw new Error(j.error?.message || "Request failed.");
+  }
   return j.data;
 }
 function exportMarkdown(title: string, content: string) {
@@ -1820,30 +1829,16 @@ export default function Workspace({
           )}
           {active === "reports" && (
             <>
-              <section className="panel report-intro">
-                <span className="tool-icon purple">
-                  <FileText size={26} />
-                </span>
-                <div>
-                  <h2>Turn evidence into a clear story.</h2>
-                  <p>
-                    Generate a professional report with observations, risks,
-                    unknowns, and evidence references.
-                  </p>
-                  {aiConsent}
-                </div>
-                <Button
-                  disabled={!!busy || !repository || !consent || !analysisReady}
-                  onClick={() =>
-                    ask(
-                      "report",
-                      "Generate an investigation report: executive summary, scope, confirmed observations, possible risks, unresolved questions, next steps, and evidence references.",
-                    )
-                  }
-                >
-                  <Sparkles size={15} /> Generate report
-                </Button>
-              </section>
+              <ReportIntro
+                consent={aiConsent}
+                disabled={!!busy || !repository || !consent || !analysisReady}
+                onGenerate={() =>
+                  ask(
+                    "report",
+                    "Generate an investigation report: executive summary, scope, confirmed observations, possible risks, unresolved questions, next steps, and evidence references.",
+                  )
+                }
+              />
 
               {reports.map((r) => {
                 let a: Analysis;
@@ -1853,40 +1848,17 @@ export default function Workspace({
                   return null;
                 }
                 return (
-                  <article className="panel report-card" key={r.id}>
-                    <div className="panel-head">
-                      <div>
-                        <span className="eyebrow">
-                          SAVED INVESTIGATION REPORT
-                        </span>
-                        <h2>{r.title}</h2>
-                        <p>{new Date(r.created_at).toLocaleString()}</p>
-                      </div>
-                      <div className="row">
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            exportMarkdown(r.title, reportMarkdown(r.title, a))
-                          }
-                        >
-                          <Download size={15} />
-                          Markdown
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => window.print()}
-                        >
-                          Print
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="report-body">
-                      <p>{a.answer}</p>
-                      {a.findings.map((f, i) => (
-                        <EvidenceCard key={i} finding={f} />
-                      ))}
-                    </div>
-                  </article>
+                  <ReportCard
+                    key={r.id}
+                    title={r.title}
+                    createdAt={r.created_at}
+                    answer={a.answer}
+                    findings={a.findings}
+                    onExport={() =>
+                      exportMarkdown(r.title, reportMarkdown(r.title, a))
+                    }
+                    onPrint={() => window.print()}
+                  />
                 );
               })}
               {!reports.length && (

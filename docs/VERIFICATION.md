@@ -1,3 +1,15 @@
+# GitHub cooldown and populated reports — October 29, 2026
+
+The GitHub client now coalesces identical in-flight GETs, keeps a credential-partitioned cache bounded to 100 entries/8 MiB, revalidates metadata with ETags, and caches branch/commit-list responses for short explicit intervals after the public-repository check. It never serves stale metadata on permission or not-found responses. These process-local optimizations are best effort and reset on restart.
+
+Rate handling distinguishes permission errors and invalid tokens from quota exhaustion. Primary reset/Retry-After values drive bounded cooldowns across upstream paths; secondary responses without Retry-After wait one minute. The API returns Retry-After and retry_at. The browser displays retry time in local time, and saved database evidence/reports do not require upstream GitHub access. A server-side GITHUB_TOKEN remains required for a reliable higher API allowance on shared hosting; caching does not remove GitHub quotas.
+
+Reports now use responsive introduction/header grids, wrapping title/evidence content, and 44-pixel actions. A component browser fixture deliberately supplies long saved titles, paths and code excerpts only in tests, using the actual production components and compiled CSS. All six width/theme combinations (320, 390, 768; dark/light) passed with no document overflow. No synthetic records are served by the app or stored in Supabase.
+
+Verification: 61 unit/service/database checks passed, two hosted checks skipped; lint and production build passed. Eight browser checks passed, with the full authenticated persisted acceptance check skipped.
+
+---
+
 # Hosted database repair — October 29, 2026
 
 The authenticated Supabase dashboard inspection found zero app tables or quota functions. The initial migration was applied in a transaction and returned success, followed by a Data API schema reload. Verification found 11 tables with RLS, 10 ownership policies, 15 foreign keys, authenticated repository CRUD, authenticated quota execution, and no anonymous quota execution. Anonymous REST requests changed from missing objects to 401/42501 access denied.

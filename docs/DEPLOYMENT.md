@@ -65,3 +65,11 @@ Supabase Authentication → URL Configuration must use:
 The production Site URL is correct and both exact callback URLs above are now saved; there are no localhost redirects. The schema is applied. Anonymous table/function requests are rejected with 42501 as intended. The hosted SQL owner CRUD and cross-user checks passed; the full browser acceptance scenario is a separate test.
 
 References: [Render Next.js](https://render.com/docs/deploy-nextjs-app), [environment settings](https://render.com/docs/configure-environment-variables), [deployment lifecycle](https://render.com/docs/deploys), [Ultramarine API](https://docs.paperinstruments.com/docs/ultramarine/chat-completions).
+
+## GitHub request allowance
+
+Set GITHUB_TOKEN as a server-only Render environment variable. Use a token restricted to public-repository read access; private access and write permissions are unnecessary for this MVP. Do not put it in a NEXT_PUBLIC variable or source control. The public status response exposes only github.tokenConfigured, which indicates presence rather than successful authentication. Verify a real repository operation after the environment change is deployed.
+
+Without authentication GitHub uses the host IP quota, which can be exhausted on shared hosting. Successful conditional 304 responses avoid primary-rate usage only for correctly authenticated requests. Coalescing, short caches and cooldowns reduce repeat traffic; they cannot grant more upstream quota.
+
+References: [GitHub REST rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api), [GitHub token management](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
