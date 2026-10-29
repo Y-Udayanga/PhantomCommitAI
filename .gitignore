@@ -9,3 +9,5 @@ coverage/
 .vercel/
 public/monaco/
 docs/screenshots/render-verification-required.png
+
+docs/screenshots/supabase-access-required.png

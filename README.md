@@ -57,7 +57,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000). Sign in to connect real repositories. Missing configuration, unavailable providers, missing schema and empty history have explicit states; the app does not substitute sample data.
+Open [PhantomCommit AI](https://phantomcommitai.onrender.com). Sign in to connect real repositories. Missing configuration, unavailable providers, missing schema and empty history have explicit states; the app does not substitute sample data.
 
 ### Environment variables
 
@@ -78,8 +78,8 @@ Never commit `.env` or `.env.local`. In this workspace, Google keys are in ignor
 
 1. Create a dedicated Supabase project. Copy its project URL and publishable key into `.env.local`.
 2. Open SQL Editor and run `supabase/migrations/20261028155647_initial_schema.sql` once. Alternatively install the Supabase CLI, run `supabase link --project-ref YOUR_PROJECT_REF`, then `supabase db push`. Inspect `supabase --help` for your installed CLI version.
-3. Enable email/password authentication and email confirmation. Set the local Site URL to `http://localhost:3000`.
-4. Allow redirects to `http://localhost:3000/auth/callback` and `http://localhost:3000/auth/callback?next=/auth%3Faction%3Dupdate`. Add the equivalent URLs for your final deployment. Configure an SMTP provider for dependable production email delivery.
+3. Enable email/password authentication and email confirmation. Set the production Site URL to `https://phantomcommitai.onrender.com`.
+4. Allow redirects to `https://phantomcommitai.onrender.com/auth/callback` and `https://phantomcommitai.onrender.com/auth/callback?next=/auth%3Faction%3Dupdate`. Add the equivalent URLs for your final deployment. Configure an SMTP provider for dependable production email delivery.
 5. Restart Next.js after editing environment variables. Create an account, verify its email, sign in, and import a small public repository.
 
 All ten public application tables have RLS. Related-record policies traverse owned parents and enforce both `USING` and `WITH CHECK`. A narrowly scoped security-definer RPC increments private rate counters; users cannot edit those counters or raise the hard caps. The app creates a profile on first profile save.
@@ -152,7 +152,7 @@ npm run test:e2e
 npm run format:check
 ```
 
-Playwright defaults to installed Google Chrome. Set `E2E_BROWSER_CHANNEL=chromium` and run `npx playwright install chromium` to use bundled Chromium instead. Tests use an existing localhost server or start one. `E2E_BASE_URL` selects an already running deployment.
+Playwright defaults to installed Google Chrome. Set `E2E_BROWSER_CHANNEL=chromium` and run `npx playwright install chromium` to use bundled Chromium instead. Tests use a local loopback server or start one. `E2E_BASE_URL` selects an already running deployment.
 
 Unit and service tests cover normalization, hunk parsing, rename/missing patch behavior, evidence rejection, per-mode credential routing, task definitions, scoped evidence filtering, provider error handling and AI response parsing. Synthetic evidence fixtures are isolated under `tests/fixtures` and are never imported by application code. PGlite executes the actual migration in PostgreSQL with two simulated authenticated identities to test ownership policies, hostile child inserts, ownership transfers, quota caps and cascading deletion. It is a local SQL test, not a substitute for Supabase Auth verification.
 

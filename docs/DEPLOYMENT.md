@@ -54,6 +54,14 @@ During project creation Render displayed an Add Card identity-verification step 
 
 ## Current status
 
-On October 29, 2026, source revision `1cd2063` was pushed to `main` and confirmed on GitHub. The Render web-service form was prepared for free compute in Singapore; the required environment settings were imported without printing private values. Submitting Deploy opened the Add Card modal again. The Render connector still reported no services, so no service, project or live deployment URL is claimed. Complete the account verification in the retained dashboard tab, then submit the prepared form and monitor the resulting build.
+The user deployed [PhantomCommit AI](https://phantomcommitai.onrender.com). On October 29, 2026, its landing page and health endpoint returned HTTP 200. The initial status response reported missing Supabase configuration. The existing Render service now has the Supabase project URL and publishable key, plus APP_ORIGIN=https://phantomcommitai.onrender.com; saving these settings triggered a rebuild that reached live. The status endpoint now reports database configuration present, and an unauthenticated repository request returns HTTP 401. This does not prove schema availability.
+
+Supabase Authentication → URL Configuration must use:
+
+- Site URL: `https://phantomcommitai.onrender.com`
+- Confirmation callback: `https://phantomcommitai.onrender.com/auth/callback`
+- Recovery callback: `https://phantomcommitai.onrender.com/auth/callback?next=/auth%3Faction%3Dupdate`
+
+Remove localhost entries from this production project's redirect allowlist. The connected Supabase account currently exposes no projects; dashboard sign-in is required to save these settings and apply the migration. The public repositories endpoint still returns PGRST205, so saved investigation workflows remain unavailable until the schema exists. Do not treat a configured connection as verified authenticated CRUD.
 
 References: [Render Next.js](https://render.com/docs/deploy-nextjs-app), [environment settings](https://render.com/docs/configure-environment-variables), [deployment lifecycle](https://render.com/docs/deploys), [Ultramarine API](https://docs.paperinstruments.com/docs/ultramarine/chat-completions).

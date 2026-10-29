@@ -1,3 +1,9 @@
+# Production URL connection — October 29, 2026
+
+The Render service at https://phantomcommitai.onrender.com returned HTTP 200 for its landing, auth, health and status endpoints. Supabase URL, publishable key and APP_ORIGIN were configured on the existing service; its rebuild reached live and status changed from database:false to database:true. An unauthenticated repositories request returned 401. No production localhost links were found in the returned landing/auth HTML. Lint, TypeScript and the two origin tests passed after documentation and tooling URL updates. Supabase public Auth settings returned 200; repositories returned 404/PGRST205. The connector listed no accessible projects, and the dashboard required sign-in. Auth URL settings, schema application and authenticated CRUD remain pending.
+
+---
+
 # Render and Ultramarine update — October 29, 2026
 
 - Ultramarine is selectable for all 18 investigation tools and conversational follow-ups. Requests use the documented Paper Instruments endpoint, server-only credentials, bounded context, structured validation and evidence checks. There is no automatic provider fallback.

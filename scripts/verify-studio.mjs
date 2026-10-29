@@ -9,7 +9,7 @@ const page = await browser.newPage({
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.goto(
-  (process.env.STUDIO_BASE_URL || "http://localhost:3001") + "/intelligence",
+  (process.env.STUDIO_BASE_URL || "http://127.0.0.1:3001") + "/intelligence",
   { waitUntil: "networkidle", timeout: 90000 },
 );
 await expect(page.getByRole("heading", { name: "AI Studio." })).toBeVisible();

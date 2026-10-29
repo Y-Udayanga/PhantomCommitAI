@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 90000,
   expect: { timeout: 15000 },
   use: {
-    baseURL: process.env.E2E_BASE_URL || "http://localhost:3000",
+    baseURL: process.env.E2E_BASE_URL || "http://127.0.0.1:3000",
     trace: "retain-on-failure",
   },
   projects: [
@@ -23,7 +23,7 @@ export default defineConfig({
     ? undefined
     : {
         command: process.env.CI ? "npm run start" : "npm run dev",
-        url: "http://localhost:3000",
+        url: "http://127.0.0.1:3000",
         reuseExistingServer: true,
         timeout: 120000,
       },

@@ -41,4 +41,4 @@ Unique keys prevent duplicate repositories per owner, duplicate SHAs per reposit
 4. Use two dedicated confirmed accounts to run `tests/supabase.integration.test.ts`, including child inserts and ownership transfer attempts.
 5. Sign in through the app and verify repository persistence. The empty workspace should show onboarding rather than a missing-schema error.
 
-Email authentication is already enabled according to the public Auth settings endpoint. Configure Site URL and redirect allowlists for `http://localhost:3000/auth/callback` and the recovery callback as documented in README before testing verification email and password reset.
+Email authentication is already enabled according to the public Auth settings endpoint. Configure Site URL and redirect allowlists for `https://phantomcommitai.onrender.com/auth/callback` and the recovery callback as documented in README before testing verification email and password reset.
