@@ -374,6 +374,8 @@ export default function Workspace({
         localStorage.setItem("phantom-repo", first.id);
         setActive("repositories");
         await loadSaved(first);
+        if (urls.length === 1 && batch.results[0]?.status === "checked")
+          setImportOpen(false);
       }
       notify(
         `${batch.results.filter((r) => r.status === "checked").length} of ${urls.length} repository checks completed.`,
@@ -2100,8 +2102,8 @@ export default function Workspace({
             </span>
             <h2 id="import-title">A new investigation awaits.</h2>
             <p>
-              Check up to four public GitHub repositories in one batch. We
-              retrieve real history and never execute repository code.
+              Enter a public GitHub repository link. We retrieve real history
+              and never execute repository code.
             </p>
             {gitHubConnection.configured && !gitHubConnection.connected && (
               <GitHubConnection

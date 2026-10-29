@@ -43,27 +43,21 @@ export function RepositoryBatchForm({
       }}
     >
       <label>
-        Repository URLs
-        <textarea
+        Repository URL
+        <input
           autoFocus
-          rows={4}
+          type="url"
           required
-          maxLength={1300}
+          maxLength={300}
           disabled={busy}
-          placeholder={
-            "https://github.com/owner/repository\nhttps://github.com/owner/another-repository"
-          }
+          placeholder="https://github.com/owner/repository"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           aria-describedby="repo-batch-help"
         />
       </label>
       <p id="repo-batch-help">
-        One URL per line. Check up to 4 repositories per batch; duplicate URLs
-        count once. Each check retrieves metadata and up to 20 recent commits.
-      </p>
-      <p className="batch-count">
-        {count} / 4 repositories · two checks at a time
+        Paste one public GitHub repository link to start investigating.
       </p>
       {(error || validation) && (
         <p role="alert" className="red">
@@ -74,7 +68,7 @@ export function RepositoryBatchForm({
         type="submit"
         disabled={busy || !configured || !count || !!validation}
       >
-        {busy ? "Checking repositories…" : "Check repositories"}
+        {busy ? "Connecting repository…" : "Investigate repository"}
         {busy ? (
           <LoaderCircle size={16} className="spin" />
         ) : (
