@@ -12,6 +12,11 @@ import { ServiceError } from "./github";
 
 export const githubSessionCookie = "phantom-github-session";
 export const githubStateCookie = "phantom-github-state";
+export class GitHubAuthorizationError extends ServiceError {
+  constructor(public reason: "configuration" | "expired_code" | "provider") {
+    super(502, "GitHub authorization could not be completed.");
+  }
+}
 const sessionSchema = z.object({
   owner: z.string().uuid(),
   token: z.string().min(20).max(512),
@@ -132,8 +137,8 @@ export async function exchangeGitHubCode(
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
-      client_id: process.env.GITHUB_APP_CLIENT_ID!,
-      client_secret: process.env.GITHUB_APP_CLIENT_SECRET!,
+      client_id: process.env.GITHUB_APP_CLIENT_ID!.trim(),
+      client_secret: process.env.GITHUB_APP_CLIENT_SECRET!.trim(),
       code,
       code_verifier: verifier,
       redirect_uri: origin + "/api/github/callback",
@@ -141,11 +146,16 @@ export async function exchangeGitHubCode(
     signal: AbortSignal.timeout(15000),
     cache: "no-store",
   });
-  if (!response.ok)
-    throw new ServiceError(
-      502,
-      "GitHub authorization failed. Please connect again.",
-    );
+  const payload = await response.json();
+  if (
+    payload?.error === "incorrect_client_credentials" ||
+    payload?.error === "redirect_uri_mismatch"
+  )
+    throw new GitHubAuthorizationError("configuration");
+  if (payload?.error === "bad_verification_code")
+    throw new GitHubAuthorizationError("expired_code");
+  if (!response.ok || payload?.error)
+    throw new GitHubAuthorizationError("provider");
   // Keep only the short-lived access token. Refresh tokens are intentionally not retained.
   const parsed = z
     .object({
@@ -153,7 +163,7 @@ export async function exchangeGitHubCode(
       expires_in: z.number().int().min(60).max(86400),
       token_type: z.literal("bearer"),
     })
-    .safeParse(await response.json());
+    .safeParse(payload);
   if (!parsed.success)
     throw new ServiceError(
       502,

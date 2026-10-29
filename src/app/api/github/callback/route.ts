@@ -5,6 +5,7 @@ import { applicationOrigin } from "@/lib/server/origin";
 import { github } from "@/lib/server/github";
 import {
   exchangeGitHubCode,
+  GitHubAuthorizationError,
   githubCookieOptions,
   githubSessionCookie,
   githubStateCookie,
@@ -14,8 +15,10 @@ import {
 
 export async function GET(request: NextRequest) {
   const origin = applicationOrigin(request.url);
+  let stage = "session";
   try {
     const { user } = await authenticated();
+    stage = "state";
     const code = request.nextUrl.searchParams.get("code") || "",
       state = request.nextUrl.searchParams.get("state") || "";
     if (
@@ -30,7 +33,9 @@ export async function GET(request: NextRequest) {
       state,
       user.id,
     );
+    stage = "exchange";
     const credential = await exchangeGitHubCode(code, verifier, origin);
+    stage = "profile";
     const { data: profile } = await github("/user", {
       token: credential.token,
     });
@@ -53,9 +58,13 @@ export async function GET(request: NextRequest) {
       ),
     );
     return response;
-  } catch {
+  } catch (error) {
+    const reason =
+      error instanceof GitHubAuthorizationError ? error.reason : stage;
+    // Only a fixed stage/reason is logged. Never log callback URLs, codes or tokens.
+    console.warn("github_authorization_failed", { reason });
     const response = NextResponse.redirect(
-      new URL("/settings?github=error", origin),
+      new URL(`/settings?github=error&github_error=${reason}`, origin),
     );
     response.cookies.set(githubStateCookie, "", githubCookieOptions(origin, 0));
     response.headers.set("Cache-Control", "no-store");

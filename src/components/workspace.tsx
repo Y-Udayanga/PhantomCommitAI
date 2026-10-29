@@ -269,8 +269,13 @@ export default function Workspace({
         ]);
         if (stopped) return;
         setGitHubConnection(connection);
-        const pendingRepo = sessionStorage.getItem("phantom-pending-repository");
-        if (pendingRepo && new URLSearchParams(window.location.search).has("github")) {
+        const pendingRepo = sessionStorage.getItem(
+          "phantom-pending-repository",
+        );
+        if (
+          pendingRepo &&
+          new URLSearchParams(window.location.search).has("github")
+        ) {
           setRepoUrl(pendingRepo);
           setImportOpen(true);
           sessionStorage.removeItem("phantom-pending-repository");
@@ -279,7 +284,14 @@ export default function Workspace({
           new URLSearchParams(window.location.search).get("github") === "error"
         )
           setError(
-            "GitHub authorization was cancelled or could not be verified. Connect again from Settings.",
+            new URLSearchParams(window.location.search).get("github_error") ===
+              "configuration"
+              ? "GitHub rejected the App credentials. The administrator must update the GitHub App client secret and callback configuration."
+              : new URLSearchParams(window.location.search).get(
+                    "github_error",
+                  ) === "session"
+                ? "Your workspace session expired. Sign in again, then connect GitHub."
+                : "GitHub authorization expired or was cancelled. Click Connect GitHub to start a fresh connection.",
           );
         setRepos(r);
         setDataLoaded(true);
@@ -361,7 +373,8 @@ export default function Workspace({
         );
       }
       const urls = repositoryBatchURLs(repoUrl);
-      const connection = await request<GitHubConnectionState>("github/connection");
+      const connection =
+        await request<GitHubConnectionState>("github/connection");
       setGitHubConnection(connection);
       if (connection.configured && !connection.connected) {
         sessionStorage.setItem("phantom-pending-repository", repoUrl);
