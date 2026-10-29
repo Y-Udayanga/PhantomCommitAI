@@ -5,9 +5,11 @@ loader.config({ paths: { vs: "/monaco/vs" } });
 export default function CodePortal({
   before,
   after,
+  language = "plaintext",
 }: {
   before: string;
   after: string;
+  language?: string;
 }) {
   const theme = useTheme();
   return (
@@ -16,6 +18,7 @@ export default function CodePortal({
       theme={theme === "light" ? "light" : "vs-dark"}
       original={before}
       modified={after}
+      language={language}
       options={{
         readOnly: true,
         minimap: { enabled: false },

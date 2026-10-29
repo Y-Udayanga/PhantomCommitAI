@@ -11,3 +11,19 @@ public/monaco/
 docs/screenshots/render-verification-required.png
 
 docs/screenshots/supabase-access-required.png
+
+# Generated framework types and local CLI state
+next-env.d.ts
+supabase/.temp/
+supabase/.branches/
+.swc/
+out/
+
+# Local logs, editor backups and operating-system metadata
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

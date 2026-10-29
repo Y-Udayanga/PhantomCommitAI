@@ -1,3 +1,13 @@
+# Forensic tools implementation — October 29, 2026
+
+Added recovery, static impact graphs, security review and feature timeline, with shared authenticated API access and a new RLS migration. See [implementation and limitations](FORENSICS.md).
+
+Before the user's instruction to stop testing: 94 unit/service/database tests passed and two live checks were skipped; lint passed; a production build passed. The first browser run had one new navigation test fail because it checked the page before the authentication redirect settled. After correcting that wait, the two forensic browser checks passed. The initial responsive script stopped at its setup-mode precondition because the production build retained configured public environment values; a full responsive pass was not completed.
+
+Final small UI edits were reviewed in source only. No further tests, link previews or localhost checks were run after the user requested they stop. The hosted migration, deployment, live Gemma response and authenticated populated workflow remain unverified. Semantic feature identity, arbitrary rename chains and whole-repository security/data-flow analysis are not implemented.
+
+---
+
 # GitHub cooldown and populated reports — October 29, 2026
 
 The GitHub client now coalesces identical in-flight GETs, keeps a credential-partitioned cache bounded to 100 entries/8 MiB, revalidates metadata with ETags, and caches branch/commit-list responses for short explicit intervals after the public-repository check. It never serves stale metadata on permission or not-found responses. These process-local optimizations are best effort and reset on restart.

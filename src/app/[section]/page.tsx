@@ -12,6 +12,10 @@ const sections = [
   "reports",
   "settings",
   "intelligence",
+  "recovery",
+  "impact",
+  "security",
+  "timeline",
 ];
 export default async function Page({
   params,

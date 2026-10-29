@@ -1,0 +1,190 @@
+.forensic-workbench {
+  min-width: 0;
+  display: grid;
+  gap: 22px;
+}
+.forensic-header h2 {
+  font-size: clamp(24px, 3vw, 36px);
+  margin: 8px 0;
+}
+.forensic-header p,
+.forensic-muted {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.forensic-tabs,
+.forensic-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.forensic-tabs button,
+.forensic-action {
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 13px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+.forensic-tabs button[aria-pressed="true"] {
+  border-color: var(--purple);
+  background: color-mix(in srgb, var(--purple) 16%, var(--surface2));
+}
+.forensic-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 16px;
+}
+.forensic-workbench label {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 0;
+}
+.forensic-workbench input:not([type="checkbox"]),
+.forensic-workbench select,
+.forensic-workbench textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px;
+  background: var(--surface2);
+  color: var(--text);
+  font: inherit;
+}
+.forensic-workbench input:focus-visible,
+.forensic-workbench select:focus-visible,
+.forensic-workbench textarea:focus-visible,
+.forensic-workbench button:focus-visible,
+.forensic-workbench summary:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 3px;
+}
+.forensic-workbench .forensic-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.forensic-check input {
+  accent-color: var(--purple);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.forensic-ai {
+  display: grid;
+  gap: 12px;
+}
+.forensic-paths textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+.forensic-card,
+.forensic-evidence,
+.forensic-empty,
+.forensic-history {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.forensic-card {
+  margin-top: 14px;
+}
+.forensic-card h3,
+.forensic-card h4 {
+  margin: 0 0 12px;
+}
+.forensic-card p,
+.forensic-evidence li {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.forensic-workbench a {
+  color: var(--purple);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.forensic-code {
+  max-height: 350px;
+  overflow: auto;
+  padding: 16px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font:
+    12px/1.7 var(--font-mono),
+    monospace;
+  white-space: pre;
+  margin: 14px 0;
+}
+.forensic-graph {
+  height: 520px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.forensic-timeline {
+  border-left: 2px solid var(--purple);
+  padding-left: 20px;
+}
+.forensic-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 18px 0;
+}
+.forensic-stats span {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--surface2);
+}
+.forensic-history-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 14px 0;
+}
+.forensic-history-row button {
+  text-align: left;
+  background: none;
+  color: var(--text);
+  border: 0;
+  cursor: pointer;
+}
+.forensic-workbench button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.forensic-workbench summary {
+  cursor: pointer;
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  .forensic-card,
+  .forensic-history,
+  .forensic-evidence,
+  .forensic-empty {
+    padding: 15px;
+  }
+  .forensic-graph {
+    height: 400px;
+  }
+  .forensic-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .forensic-timeline {
+    padding-left: 12px;
+  }
+}

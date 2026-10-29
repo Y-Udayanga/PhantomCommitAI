@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./theme-responsive.css";
+import "./forensics.css";
 import { themeScript } from "@/lib/theme";
 export const metadata: Metadata = {
   title: "PhantomCommit AI — Code never truly dies",

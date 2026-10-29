@@ -9,6 +9,7 @@ import { gemmaCredential, googleModelChain } from "./ai-config";
 import type { AIProvider } from "../ai-provider";
 import type { AnalysisMode } from "../ai-tasks";
 import type { Commit } from "../types";
+import { redactValue, maskSecrets } from "../redaction";
 export const ANALYSIS_VERSION = `${PROMPT_VERSION}-providers-v2-structured`;
 export function providerConfiguration() {
   return {
@@ -34,10 +35,15 @@ export async function analyze(
   commits: Commit[],
   history: { role: string; content: string }[] = [],
 ) {
+  commits = redactValue(commits);
+  question = maskSecrets(question);
+  history = redactValue(history);
   if (provider === "ultramarine")
-    return investigateUltramarine(question, mode, commits, history);
-  return {
+    return redactValue(
+      await investigateUltramarine(question, mode, commits, history),
+    );
+  return redactValue({
     ...(await gemma(question, mode, commits, history)),
     provider: "gemma" as const,
-  };
+  });
 }

@@ -12,6 +12,13 @@ Current source code cannot tell the whole story of a regression. PhantomCommit p
 
 ## Implemented application
 
+- Smart code recovery with paginated deleted-code discovery, historical/current Monaco comparison and validated, export-only inverse patches.
+- Interactive JS/TS static dependency graphs with local symbol resolution, direct/transitive dependents and base/target relationship comparison.
+- Security regression review with focused diff rules, masked evidence, finding decisions and optional Gemma explanations.
+- Feature evolution timeline with verified file changes, rename evidence, bounded history search and cross-tool navigation.
+
+See [forensic tools: setup, architecture, safety and limitations](docs/FORENSICS.md). Apply the new forensic migration before using their saved investigations. Hosted application/database deployment has not been performed as part of this implementation.
+
 - Responsive real-data investigation workspace. No sample repositories, commits, analytics or AI responses are loaded by the application. Legacy `/demo` links redirect to the real workspace.
 - AI Studio with 18 focused tools: explanations, historical questions, risk review, root cause investigation, regression suspects, deleted-code investigation, lineage review, security drift, forgotten-feature leads, restoration plans, test suggestions, impact summaries, intent classification, factual storytelling, next steps and reports.
 - Supabase email sign-up, verification callback, sign-in, password recovery, logout, server-verified protected pages and APIs.
@@ -180,7 +187,7 @@ See [verification](docs/VERIFICATION.md), [deployment](docs/DEPLOYMENT.md) and t
 
 - Public repositories only. No cloning, private-repository auth, embeddings, or persistent workers.
 - Historical scope is bounded: first 100 files per commit, 12,000 characters per stored patch, 200 saved commits in workspace views. GitHub may omit patches. Branch list stops at 100. These limits are disclosed rather than treated as complete history.
-- Function-level AST tracking, semantic move/rewrite detection, cross-module blast radius and abandoned-feature detection are future work. Current removal counts are **artifacts, not functions**.
+- The impact tool now resolves local JS/TS symbols within a bounded selected-file scope. Whole-repository blast radius, semantic move/rewrite detection and abandoned-feature detection remain unsupported. Removal counts are **artifacts, not functions**.
 - Root-cause ranking is lexical and does not establish causality. Commit graph shows loaded parent relationships; it is not a complete branch topology.
 - Before/after comparison tracks a file’s recorded rename and chosen path. A file absent at a manually chosen revision returns a clear error; arbitrary rename chains are not reconstructed.
 - English keyword heuristics can miss checks or match comments. AI structured output can fail validation; no result is saved as successful in that case.

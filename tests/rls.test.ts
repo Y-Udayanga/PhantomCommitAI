@@ -18,11 +18,23 @@ it("executes migration in PostgreSQL and enforces tenant policies and atomic quo
       "utf8",
     ),
   );
+  await pg.exec(
+    readFileSync(
+      new URL(
+        "../supabase/migrations/20261029154742_forensic_investigations.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
   await pg.exec(`set role authenticated; set request.jwt.claim.sub='${a}';`);
   const r = await pg.query<{ id: string }>(
     `insert into public.repositories(owner_id,github_owner,github_name,full_name,github_url,default_branch) values('${a}','test','fixture','test/fixture','https://github.com/test/fixture','main') returning id`,
   );
   const id = r.rows[0].id;
+  const forensic = await pg.query<{ id: string }>(
+    `insert into public.forensic_investigations(repository_id,owner_id,kind,result) values('${id}','${a}','security','{"findings":[]}') returning id`,
+  );
   const t = await pg.query<{ id: string }>(
     `insert into public.investigation_threads(repository_id,owner_id,title) values('${id}','${a}','test') returning id`,
   );
@@ -43,10 +55,30 @@ it("executes migration in PostgreSQL and enforces tenant policies and atomic quo
     "analysis_runs",
     "ai_findings",
     "reports",
+    "forensic_investigations",
   ])
     expect((await pg.query(`select * from public.${table}`)).rows).toHaveLength(
       0,
     );
+  await expect(
+    pg.exec(
+      `insert into public.forensic_investigations(repository_id,owner_id,kind,result) values('${id}','${b}','impact','{}')`,
+    ),
+  ).rejects.toThrow(/row-level security/);
+  expect(
+    (
+      await pg.query(
+        `update public.forensic_investigations set review='{"forged":true}' where id='${forensic.rows[0].id}' returning id`,
+      )
+    ).rows,
+  ).toHaveLength(0);
+  expect(
+    (
+      await pg.query(
+        `delete from public.forensic_investigations where id='${forensic.rows[0].id}' returning id`,
+      )
+    ).rows,
+  ).toHaveLength(0);
   await expect(
     pg.exec(
       `insert into public.investigation_threads(repository_id,owner_id,title) values('${id}','${b}','intrusion')`,
@@ -75,6 +107,21 @@ it("executes migration in PostgreSQL and enforces tenant policies and atomic quo
     ).rows,
   ).toHaveLength(0);
   await pg.exec(`set request.jwt.claim.sub='${a}';`);
+  await expect(
+    pg.exec(
+      `update public.forensic_investigations set owner_id='${b}' where id='${forensic.rows[0].id}'`,
+    ),
+  ).rejects.toThrow(/row-level security/);
+  await pg.exec(
+    `update public.forensic_investigations set review='{"fixture":{"status":"reviewed"}}' where id='${forensic.rows[0].id}'`,
+  );
+  expect(
+    (
+      await pg.query<{ review: object }>(
+        `select review from public.forensic_investigations where id='${forensic.rows[0].id}'`,
+      )
+    ).rows[0].review,
+  ).toEqual({ fixture: { status: "reviewed" } });
   await expect(
     pg.exec(`update public.repositories set owner_id='${b}' where id='${id}'`),
   ).rejects.toThrow(/row-level security/);

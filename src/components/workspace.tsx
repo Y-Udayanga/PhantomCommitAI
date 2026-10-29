@@ -53,6 +53,7 @@ import { ReportCard, ReportIntro } from "./report-card";
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import AIStudio from "./ai-studio";
+const ForensicWorkbench = dynamic(() => import("./forensic-workbench"));
 import { ProviderSelect } from "./provider-select";
 import {
   providerLabel,
@@ -84,6 +85,10 @@ const navigation = [
   { id: "intelligence", label: "AI Studio", icon: Sparkles },
   { id: "detective", label: "AI detective", icon: ScanSearch },
   { id: "resurrection", label: "Resurrection lab", icon: FlaskConical },
+  { id: "recovery", label: "Smart code recovery", icon: FlaskConical },
+  { id: "impact", label: "Code impact graph", icon: GitBranch },
+  { id: "security", label: "Security regressions", icon: ShieldCheck },
+  { id: "timeline", label: "Feature evolution", icon: History },
   { id: "reports", label: "Investigation reports", icon: FileText },
 ];
 type Thread = {
@@ -949,7 +954,14 @@ export default function Workspace({
               <Plus size={16} /> Investigate repository
             </Button>
           </div>
-          {!["intelligence", "detective"].includes(active) && (
+          {![
+            "intelligence",
+            "detective",
+            "recovery",
+            "impact",
+            "security",
+            "timeline",
+          ].includes(active) && (
             <ProviderSelect
               provider={provider}
               onChange={changeProvider}
@@ -1024,6 +1036,24 @@ export default function Workspace({
                   );
               }}
               onContinue={() => navigate("detective")}
+            />
+          )}
+          {(
+            ["recovery", "impact", "security", "timeline"] as string[]
+          ).includes(active) && (
+            <ForensicWorkbench
+              key={`${repository?.id || "empty"}:${active}`}
+              initialKind={
+                active as "recovery" | "impact" | "security" | "timeline"
+              }
+              repos={repos}
+              repository={repository}
+              branches={branches}
+              branch={branch}
+              selected={selected}
+              selectedFile={file}
+              commits={commits}
+              onRepository={chooseRepo}
             />
           )}
           {active === "dashboard" && (
@@ -1641,6 +1671,12 @@ export default function Workspace({
                           review. Nothing is applied or committed automatically.
                         </span>
                       </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate("recovery")}
+                      >
+                        Open smart code recovery and validated patch preview
+                      </Button>
                       <div className="panel">
                         <div className="panel-head">
                           <div>

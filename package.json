@@ -25,6 +25,7 @@
     "@supabase/supabase-js": "2.118.0",
     "@xyflow/react": "12.12.0",
     "clsx": "2.1.1",
+    "diff": "9.0.0",
     "lucide-react": "1.63.0",
     "motion": "14.7.1",
     "next": "16.4.3",
@@ -32,6 +33,7 @@
     "react-dom": "19.3.1",
     "recharts": "3.10.1",
     "tailwind-merge": "3.7.0",
+    "typescript": "6.0.3",
     "zod": "4.6.7"
   },
   "devDependencies": {
@@ -45,7 +47,6 @@
     "eslint-config-next": "16.4.3",
     "prettier": "3.9.10",
     "tailwindcss": "4.3.3",
-    "typescript": "6.0.3",
     "vitest": "5.0.5"
   },
   "type": "module",

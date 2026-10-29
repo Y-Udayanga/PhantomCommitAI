@@ -29,6 +29,12 @@ import {
 import { checkRepositoryBatch } from "@/lib/server/repository-batch";
 import { parseRepository, classify } from "@/lib/analysis";
 import type { Commit, Repository } from "@/lib/types";
+import {
+  forensicInput,
+  forensicRecords,
+  runForensics,
+} from "@/lib/server/forensic-service";
+import { maskSecrets } from "@/lib/forensics";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -349,6 +355,123 @@ async function handle(req: NextRequest, ctx: Context) {
     if (path[0] === "repositories" && path[1]) {
       const repository = await repo(path[1]);
       const base = `/repos/${repository.github_owner}/${repository.github_name}`;
+      if (path[2] === "forensics" && path.length <= 4) {
+        const recordId = path[3] ? uuid.parse(path[3]) : undefined;
+        if (req.method === "GET" && !recordId)
+          return ok(await forensicRecords(db, repository, user.id));
+        if (req.method === "DELETE") {
+          let query = db
+            .from("forensic_investigations")
+            .delete()
+            .eq("repository_id", repository.id)
+            .eq("owner_id", user.id);
+          if (recordId) query = query.eq("id", recordId);
+          const deleted = await query;
+          checkDb(deleted.error);
+          return ok({ deleted: true });
+        }
+        if (req.method === "PATCH" && recordId) {
+          const review = z
+            .object({
+              finding: z.string().max(700),
+              status: z.enum(["open", "reviewed", "resolved", "dismissed"]),
+              reason: z.string().max(1000).default(""),
+            })
+            .parse(await body(req));
+          if (review.status === "dismissed" && !review.reason.trim())
+            throw new ServiceError(400, "A dismissal reason is required.");
+          const row = await db
+            .from("forensic_investigations")
+            .select("result,review")
+            .eq("id", recordId)
+            .eq("repository_id", repository.id)
+            .eq("owner_id", user.id)
+            .single();
+          if (row.error || !row.data)
+            throw new ServiceError(404, "Investigation not found.");
+          if (
+            !row.data.result.findings?.some(
+              (f: { id: string }) => f.id === review.finding,
+            )
+          )
+            throw new ServiceError(
+              400,
+              "Finding is not part of this investigation.",
+            );
+          const reviews = {
+            ...row.data.review,
+            [review.finding]: {
+              status: review.status,
+              reason: maskSecrets(review.reason),
+              updated_at: new Date().toISOString(),
+            },
+          };
+          const updated = await db
+            .from("forensic_investigations")
+            .update({ review: reviews })
+            .eq("id", recordId)
+            .eq("owner_id", user.id)
+            .eq("review", JSON.stringify(row.data.review))
+            .select()
+            .maybeSingle();
+          checkDb(updated.error);
+          if (!updated.data)
+            throw new ServiceError(
+              409,
+              "Another review changed this investigation. Reopen it from history and retry.",
+            );
+          return ok(updated.data);
+        }
+        if (req.method === "POST" && !recordId) {
+          const input = forensicInput.parse(await body(req));
+          if (input.ai) {
+            const aiQuota = await db.rpc("consume_request", {
+              bucket: "ai",
+              max_requests: 8,
+            });
+            checkDb(aiQuota.error);
+            if (!aiQuota.data)
+              throw new ServiceError(
+                429,
+                "AI limit reached. Retry in one minute.",
+              );
+          }
+          await assertPublic(repository);
+          const result = await runForensics(input, repository, {
+            github,
+            detail,
+          });
+          const expired = await db
+            .from("forensic_investigations")
+            .delete()
+            .eq("owner_id", user.id)
+            .lt("expires_at", new Date().toISOString());
+          checkDb(expired.error);
+          // Full snapshots and proposed replacement files are never persisted.
+          const stored = { ...result } as Record<string, unknown>;
+          delete stored.historical;
+          delete stored.current;
+          if (stored.proposal) {
+            const proposal = {
+              ...(stored.proposal as Record<string, unknown>),
+            };
+            delete proposal.proposed;
+            stored.proposal = proposal;
+          }
+          const saved = await db
+            .from("forensic_investigations")
+            .insert({
+              owner_id: user.id,
+              repository_id: repository.id,
+              kind: input.kind,
+              result: stored,
+            })
+            .select("id,review,created_at,expires_at")
+            .single();
+          checkDb(saved.error);
+          return ok({ ...saved.data, result });
+        }
+      }
       if (path.length === 2) {
         if (req.method === "GET") return ok(repository);
         if (req.method === "DELETE") {

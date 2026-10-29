@@ -29,6 +29,10 @@ const routes = [
   "/resurrection",
   "/reports",
   "/settings",
+  "/recovery",
+  "/impact",
+  "/security",
+  "/timeline",
 ];
 mkdirSync("test-results/responsive", { recursive: true });
 let checks = 0;

@@ -1,5 +1,7 @@
 # Database setup
 
+The forensic tools add one migration: `20261029154742_forensic_investigations.sql`. It creates the owned, indexed, RLS-protected derived-result table used for recovery, graph, security and timeline history. It has been exercised locally in the PostgreSQL ownership tests, but has not been applied to the hosted database in this implementation. Apply it separately after reconciling the previously SQL-applied initial migration. See [retention, data handling and setup](FORENSICS.md).
+
 Target project: `beezpkgdrxpidyhzcvuq`. App configuration is in the ignored `.env.local`; do not commit it.
 
 ## Migration
