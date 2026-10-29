@@ -43,12 +43,12 @@ export default function ActivityChart({ commits }: { commits: Commit[] }) {
               <stop offset="100%" stopColor="#9675fa" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#222433" vertical={false} />
+          <CartesianGrid stroke="var(--line)" vertical={false} />
           <XAxis
             dataKey="date"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "#777d94", fontSize: 11 }}
+            tick={{ fill: "var(--muted)", fontSize: 11 }}
           />
           <YAxis
             axisLine={false}
@@ -57,22 +57,23 @@ export default function ActivityChart({ commits }: { commits: Commit[] }) {
           />
           <Tooltip
             contentStyle={{
-              background: "#151622",
-              border: "1px solid #33354a",
+              background: "var(--surface2)",
+              color: "var(--text)",
+              border: "1px solid var(--line)",
               borderRadius: 8,
             }}
           />
           <Area
             type="monotone"
             dataKey="additions"
-            stroke="#75bba7"
+            stroke="var(--green)"
             fill="transparent"
             strokeWidth={2}
           />
           <Area
             type="monotone"
             dataKey="deletions"
-            stroke="#a88afe"
+            stroke="var(--purple)"
             fill="url(#purpleArea)"
             strokeWidth={2}
           />

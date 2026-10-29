@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Brand, Ghost } from "@/components/brand";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 export default function Landing() {
   return (
     <div className="landing">
@@ -30,11 +31,14 @@ export default function Landing() {
             <GitFork size={17} /> GitHub
           </a>
         </nav>
-        <Button asChild variant="outline">
-          <Link href="/auth">
-            Open workspace <ArrowUpRight size={15} />
-          </Link>
-        </Button>
+        <div className="landing-actions">
+          <ThemeToggle />
+          <Button asChild variant="outline">
+            <Link href="/auth">
+              Open workspace <ArrowUpRight size={15} />
+            </Link>
+          </Button>
+        </div>
       </header>
       <main id="main">
         <section className="hero">

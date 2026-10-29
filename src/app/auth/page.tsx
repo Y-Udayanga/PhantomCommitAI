@@ -6,6 +6,7 @@ import { ArrowRight, LoaderCircle, ShieldCheck } from "lucide-react";
 import { Brand, Ghost } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { browserDatabase } from "@/lib/supabase-browser";
+import { ThemeToggle } from "@/components/theme-toggle";
 function AuthContent() {
   const router = useRouter();
   const params = useSearchParams();
@@ -72,6 +73,9 @@ function AuthContent() {
   }
   return (
     <main className="auth-page" id="main">
+      <div className="auth-theme">
+        <ThemeToggle />
+      </div>
       <section className="auth-story">
         <Link href="/">
           <Brand />

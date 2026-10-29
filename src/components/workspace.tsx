@@ -41,6 +41,7 @@ import {
 import { Brand, Ghost } from "./brand";
 import { EvidenceCard } from "./evidence-card";
 import { Button } from "./ui/button";
+import { ThemeToggle } from "./theme-toggle";
 import AIStudio from "./ai-studio";
 import { ProviderSelect } from "./provider-select";
 import {
@@ -694,7 +695,10 @@ export default function Workspace({
   );
   return (
     <div className="workspace">
-      <aside className={`sidebar ${mobile ? "mobile-open" : ""}`}>
+      <aside
+        id="workspace-sidebar"
+        className={`sidebar ${mobile ? "mobile-open" : ""}`}
+      >
         <Link className="sidebar-brand" href="/">
           <Brand />
         </Link>
@@ -781,6 +785,8 @@ export default function Workspace({
           <button
             className="mobile-toggle"
             aria-label="Toggle navigation"
+            aria-expanded={mobile}
+            aria-controls="workspace-sidebar"
             onClick={() => setMobile(!mobile)}
           >
             {mobile ? <X /> : <Menu />}
@@ -791,6 +797,7 @@ export default function Workspace({
             <strong>{currentTitle}</strong>
           </div>
           <div className="topbar-right">
+            <ThemeToggle />
             {statusBadge}
             <a
               href="https://github.com/Y-Udayanga/PhantomCommitAI"
@@ -1897,7 +1904,11 @@ export default function Workspace({
           {active === "settings" && (
             <div className="settings-grid">
               <section className="panel settings-card">
-                <h2>Profile</h2>
+                <h2>Profile & appearance</h2>
+                <div className="settings-status">
+                  <span>Color theme</span>
+                  <ThemeToggle />
+                </div>
                 <p>{profileEmail || "Sign in to manage your profile."}</p>
                 <label>
                   Display name

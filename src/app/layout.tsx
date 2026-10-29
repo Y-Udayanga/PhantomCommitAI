@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./theme-responsive.css";
+import { themeScript } from "@/lib/theme";
 export const metadata: Metadata = {
   title: "PhantomCommit AI — Code never truly dies",
   description:
@@ -11,7 +13,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <a className="skip-link" href="#main">
           Skip to content

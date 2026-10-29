@@ -1,5 +1,6 @@
 "use client";
 import { DiffEditor, loader } from "@monaco-editor/react";
+import { useTheme } from "./theme-toggle";
 loader.config({ paths: { vs: "/monaco/vs" } });
 export default function CodePortal({
   before,
@@ -8,10 +9,11 @@ export default function CodePortal({
   before: string;
   after: string;
 }) {
+  const theme = useTheme();
   return (
     <DiffEditor
       height="400px"
-      theme="vs-dark"
+      theme={theme === "light" ? "light" : "vs-dark"}
       original={before}
       modified={after}
       options={{
@@ -21,6 +23,8 @@ export default function CodePortal({
         fontSize: 12,
         automaticLayout: true,
         renderSideBySide: true,
+        useInlineViewWhenSpaceIsLimited: true,
+        renderSideBySideInlineBreakpoint: 700,
       }}
       loading={<div className="skeleton">Loading code portal…</div>}
     />

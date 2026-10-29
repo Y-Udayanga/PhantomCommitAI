@@ -7,6 +7,7 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { useTheme } from "./theme-toggle";
 import type { Commit } from "@/lib/types";
 export default function CommitGraph({
   commits,
@@ -15,6 +16,7 @@ export default function CommitGraph({
   commits: Commit[];
   onSelect: (c: Commit) => void;
 }) {
+  const theme = useTheme();
   const nodes: Node[] = commits.slice(0, 20).map((c, i) => ({
     id: c.sha,
     position: { x: 30 + (i % 3 === 1 ? 90 : 0), y: i * 95 },
@@ -29,9 +31,9 @@ export default function CommitGraph({
       ),
     },
     style: {
-      background: "#151421",
-      color: "#dcd9ee",
-      border: "1px solid #66558f",
+      background: "var(--surface2)",
+      color: "var(--text)",
+      border: "1px solid var(--purple)",
       borderRadius: 9,
       width: 230,
     },
@@ -57,11 +59,11 @@ export default function CommitGraph({
           const c = commits.find((c) => c.sha === n.id);
           if (c) onSelect(c);
         }}
-        colorMode="dark"
+        colorMode={theme}
         nodesDraggable={false}
         aria-label="Commit ancestry map"
       >
-        <Background color="#302b45" gap={20} />
+        <Background color="var(--line)" gap={20} />
         <Controls />
       </ReactFlow>
     </div>
