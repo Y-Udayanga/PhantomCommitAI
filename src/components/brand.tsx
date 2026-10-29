@@ -1,2 +1,37 @@
-export function Ghost({size=30}:{size?:number}) {return <svg width={size} height={size} viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M8 31V18a12 12 0 0 1 24 0v16l-6-4-6 4-6-4-6 4v-3Z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round"/><path d="M15 18v4m10-4v4" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>}
-export function Brand(){return <span className="brand"><span className="brand-icon"><Ghost/></span><span>phantom<span className="brand-light">commit</span><small>AI</small></span></span>}
+export function Ghost({ size = 30 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 40 40"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M8 31V18a12 12 0 0 1 24 0v16l-6-4-6 4-6-4-6 4v-3Z"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M15 18v4m10-4v4"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+export function Brand() {
+  return (
+    <span className="brand">
+      <span className="brand-icon">
+        <Ghost />
+      </span>
+      <span>
+        phantom<span className="brand-light">commit</span>
+        <small>AI</small>
+      </span>
+    </span>
+  );
+}
