@@ -9,6 +9,13 @@ const context = await browser.newContext({ reducedMotion: "reduce" });
 const page = await context.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
+page.on("console", (message) => {
+  if (
+    message.type() === "error" &&
+    /hydration|hydrated|didn't match/i.test(message.text())
+  )
+    errors.push(message.text());
+});
 const routes = [
   "/",
   "/auth",
@@ -26,6 +33,11 @@ const routes = [
 mkdirSync("test-results/responsive", { recursive: true });
 let checks = 0;
 try {
+  const status = await (await page.request.get(base + "/api/status")).json();
+  expect(
+    status.data.database,
+    "Use a local setup build with the public Supabase variables empty; authenticated deployments require a test account.",
+  ).toBe(false);
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const theme of ["dark", "light"]) {
@@ -33,10 +45,12 @@ try {
       const toggle = page.getByRole("button", {
         name: `Switch to ${theme} mode`,
       });
-      if (await toggle.count()) await toggle.click();
+      if ((await page.locator("html").getAttribute("data-theme")) !== theme)
+        await toggle.click();
       for (const route of routes) {
         await page.goto(base + route);
         await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+        await expect(page.locator(".theme-toggle").first()).toBeVisible();
         if (!["/", "/auth"].includes(route)) {
           await expect(page.locator(".workspace")).toBeVisible({
             timeout: 60000,
@@ -54,8 +68,14 @@ try {
           layout.document,
           `${route} ${theme} at ${width}px`,
         ).toBeLessThanOrEqual(width);
-        expect(layout.themeButton.width).toBeGreaterThanOrEqual(44);
-        expect(layout.themeButton.height).toBeGreaterThanOrEqual(44);
+        expect(
+          layout.themeButton.width,
+          `${route} ${theme} at ${width}px`,
+        ).toBeGreaterThanOrEqual(44);
+        expect(
+          layout.themeButton.height,
+          `${route} ${theme} at ${width}px`,
+        ).toBeGreaterThanOrEqual(44);
         expect(layout.themeButton.right).toBeLessThanOrEqual(width);
         checks++;
         if (
@@ -70,6 +90,7 @@ try {
         }
       }
     }
+    console.log(`Responsive layouts passed at ${width}px in both themes.`);
   }
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto(base + "/repositories");

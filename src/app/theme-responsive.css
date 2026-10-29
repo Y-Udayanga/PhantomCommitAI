@@ -106,6 +106,10 @@ html[data-theme="light"] .react-flow__controls button {
   }
 }
 @media (max-width: 650px) {
+  .auth-page {
+    grid-template-rows: auto 1fr;
+    min-height: 100dvh;
+  }
   .landing-nav {
     flex-wrap: wrap;
     padding: 18px 20px;
@@ -129,21 +133,25 @@ html[data-theme="light"] .react-flow__controls button {
   }
   .auth-story {
     min-height: 72px;
+    height: 76px;
     display: flex;
+    flex-direction: row;
     align-items: center;
+    justify-content: flex-start;
     padding: 20px;
   }
   .auth-form-wrap {
     padding: 36px 22px;
+    align-items: flex-start;
   }
-  .auth-form input,
-  .auth-form select,
-  .modal input,
-  .chat-composer textarea,
-  .studio-runner textarea,
-  .studio-filters input,
-  .provider-select select {
+  input,
+  textarea,
+  select {
     font-size: 16px;
+  }
+  .scope-dates input {
+    min-width: 0;
+    width: 100%;
   }
   .topbar {
     gap: 8px;
@@ -318,7 +326,8 @@ html[data-theme="light"] .react-flow__controls button {
   .studio-tools,
   .artifact-grid,
   .stats-grid,
-  .prompt-grid {
+  .prompt-grid,
+  .scope-dates {
     grid-template-columns: 1fr;
   }
   .studio-hero {

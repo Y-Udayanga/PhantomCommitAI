@@ -187,3 +187,9 @@ The landing page is captured from the actual application. No synthetic repositor
 ## License and credits
 
 MIT — see [LICENSE](LICENSE). Original layout, ghost artwork and test fixtures were created for this project. Icons: Lucide (ISC). Component composition follows shadcn/ui (MIT) and Radix Slot (MIT); charting uses Recharts (MIT), graphing uses React Flow (MIT), Monaco uses Microsoft’s MIT-licensed editor. No third-party application source or stock artwork was copied. Google Gemma model and hosted API use are subject to their own terms; application licensing does not relicense model weights.
+
+### Appearance and mobile layouts
+
+Use the sun/moon control in the landing header, sign-in page or workspace toolbar to switch between dark and light modes. Settings also exposes the control. The choice stays in this browser and synchronizes between tabs. Code comparison, commit graphs and chart chrome follow the selected theme.
+
+To check every page layout without a test account, run a local setup instance with the two public Supabase variables empty, then run `node scripts/verify-responsive.mjs`. This checks the twelve empty/setup page layouts at 320, 390, 768 and 1440 pixels in both themes, plus the import dialog and mobile navigation. It does not replace testing authenticated, populated investigations. `RESPONSIVE_BASE_URL` overrides the default test address.

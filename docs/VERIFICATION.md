@@ -1,3 +1,16 @@
+# Theme and responsive layout update — October 29, 2026
+
+Dark/light controls are available on the landing page, authentication screens, workspace toolbar and Settings. A fixed bootstrap script restores the saved theme before paint. Theme-aware code editor, graph and chart chrome follow it.
+
+- Lint and production build (including TypeScript) passed.
+- Seven browser checks passed against the production build, including color changes, navigation/reload persistence, cross-tab synchronization and storage-denied behavior. The unrelated authenticated persisted-acceptance test remains skipped.
+- All twelve page layouts passed in both themes at 320, 390, 768 and 1440 pixels: 96 route/theme/viewport checks, no document horizontal overflow, visible 44-pixel theme controls, working mobile navigation and import dialog, and no page or hydration errors. This uses an explicitly unconfigured local production build to inspect empty/setup workspace pages. It does not establish populated, authenticated mobile workflows.
+- Screenshots were visually inspected; excessive mobile auth header spacing was corrected before the final passing production-layout run.
+
+Reproduce the layout check with `node scripts/verify-responsive.mjs` against a local setup build. Use `RESPONSIVE_BASE_URL` to select that instance.
+
+---
+
 # Production URL connection — October 29, 2026
 
 The Render service at https://phantomcommitai.onrender.com returned HTTP 200 for its landing, auth, health and status endpoints. Supabase URL, publishable key and APP_ORIGIN were configured on the existing service; its rebuild reached live and status changed from database:false to database:true. An unauthenticated repositories request returned 401. No production localhost links were found in the returned landing/auth HTML. Lint, TypeScript and the two origin tests passed after documentation and tooling URL updates. Supabase public Auth settings returned 200; repositories returned 404/PGRST205. The connector listed no accessible projects, and the dashboard required sign-in. Auth URL settings, schema application and authenticated CRUD remain pending.
