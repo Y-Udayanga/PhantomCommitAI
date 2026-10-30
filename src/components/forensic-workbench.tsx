@@ -138,6 +138,10 @@ export default function ForensicWorkbench({
   const result = record?.result;
   async function run(source?: string, file?: string, nextPage = 1) {
     if (!root || busy) return;
+    if ((kind === "security" || kind === "impact") && !/^[a-f0-9]{40}$/i.test(base.trim())) {
+      setError("Choose a full 40-character base commit SHA before analyzing this comparison.");
+      return;
+    }
     const abort = new AbortController();
     controller.current = abort;
     setBusy(true);
@@ -150,8 +154,8 @@ export default function ForensicWorkbench({
         body: JSON.stringify({
           kind,
           branch: targetBranch,
-          base: base || undefined,
-          head: head || undefined,
+          base: base.trim().toLowerCase() || undefined,
+          head: head.trim().toLowerCase() || undefined,
           source,
           file,
           query,
