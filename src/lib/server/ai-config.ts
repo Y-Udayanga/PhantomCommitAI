@@ -10,10 +10,21 @@ export const googleFallbackModels = [
   "gemini-3-flash-preview",
   "gemini-3.1-flash-lite",
 ];
+export const gemmaModels = [
+  "gemma-4-26b-a4b-it",
+  "gemma-4-31b-it",
+] as const;
+
 export function googleModelChain() {
+  const preferred = process.env.GEMMA_MODEL?.trim();
+  const orderedGemma =
+    preferred === "gemma-4-31b-it"
+      ? ["gemma-4-31b-it", "gemma-4-26b-a4b-it"]
+      : ["gemma-4-26b-a4b-it", "gemma-4-31b-it"];
+
   return [
     ...new Set([
-      process.env.GEMMA_MODEL?.trim() || "gemma-4-26b-a4b-it",
+      ...orderedGemma,
       ...googleFallbackModels,
     ]),
   ];

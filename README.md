@@ -83,7 +83,7 @@ Never commit `.env` or `.env.local`. In this workspace, Google keys are in ignor
 
 ### Google model fallback
 
-Google analysis starts with Gemma 4 26B and automatically falls back on quota/availability errors through Gemini 3.8 Flash, 3.6 Flash, 3.7 Flash, 3.5 Flash, 3.5 Flash-Lite, 2.5 Flash-Lite, 3 Flash Preview (the published endpoint for “3 Flash”), and 3.1 Flash-Lite. Each model is attempted at most once within a 50-second provider budget. Unavailable models are skipped. Two malformed responses stop the request without saving findings. Key/authentication errors and safety refusals stop immediately. Each route retains its configured Google key; shared project quotas may affect every fallback. Responses record the actual model, and cache identity includes the routing chain.
+Google analysis starts with Gemma 4 26B, falls back to Gemma 4 31B, and then automatically falls back on quota/availability errors through Gemini 3.8 Flash, 3.6 Flash, 3.7 Flash, 3.5 Flash, 3.5 Flash-Lite, 2.5 Flash-Lite, 3 Flash Preview (the published endpoint for “3 Flash”), and 3.1 Flash-Lite. Each model is attempted at most once within a 50-second provider budget. Unavailable models are skipped. Two malformed responses stop the request without saving findings. Key/authentication errors and safety refusals stop immediately. Each route retains its configured Google key; shared project quotas may affect every fallback. Responses record the actual model, and cache identity includes the routing chain.
 
 ### Public GitHub App connection
 

@@ -50,10 +50,10 @@ it("tries each fallback once when all Google models are quota limited", async ()
   await expect(
     investigate("why removed?", "explain", demoCommits),
   ).rejects.toMatchObject({ status: 429 });
-  expect(generate).toHaveBeenCalledTimes(9);
+  expect(generate).toHaveBeenCalledTimes(10);
   expect(
     new Set(generate.mock.calls.map(([request]) => request.model)).size,
-  ).toBe(9);
+  ).toBe(10);
 });
 it("passes each configured key to the SDK only for its intended route", async () => {
   vi.stubEnv("GEMINI_API_KEY", "feature-unit-key");
@@ -78,6 +78,6 @@ it("falls back on temporary failure using the same route-specific key", async ()
   });
   await investigate("Explain the changes.", "explain", demoCommits);
   expect(generate).toHaveBeenCalledTimes(2);
-  expect(generate.mock.calls[1][0].model).toBe("gemini-3.8-flash");
+  expect(generate.mock.calls[1][0].model).toBe("gemma-4-31b-it");
   expect(keys).toEqual(["feature-unit-key"]);
 });
