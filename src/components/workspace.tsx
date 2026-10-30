@@ -22,7 +22,6 @@ import {
   Search,
   ChevronRight,
   ChevronDown,
-  Command,
   Sparkles,
   ShieldCheck,
   Clock3,
@@ -905,14 +904,6 @@ export default function Workspace({
           <div className="topbar-right">
             <ThemeToggle />
             {statusBadge}
-            <a
-              href="https://github.com/Y-Udayanga/PhantomCommitAI"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Project source"
-            >
-              <Command size={17} />
-            </a>
           </div>
         </header>
         <main id="main" className="main-content">

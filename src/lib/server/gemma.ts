@@ -38,9 +38,12 @@ EVIDENCE: ${context}`;
   const deadline = Date.now() + 50000;
   let quotaReached = false;
   let invalidResponses = 0;
+  let modelOrRequestRejected = false;
   for (const model of models) {
     const remaining = deadline - Date.now();
-    if (remaining < 1000) break;
+    if (remaining < 10000) break;
+    const attemptTimeout = Math.min(18000, remaining);
+    if (attemptTimeout < 10000) break;
     try {
       const response = await ai.models.generateContent({
         model,
@@ -51,7 +54,7 @@ EVIDENCE: ${context}`;
             ? { thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } }
             : { responseMimeType: "application/json" }),
           httpOptions: {
-            timeout: Math.min(18000, remaining),
+            timeout: attemptTimeout,
             retryOptions: { attempts: 1 },
           },
         },
@@ -101,20 +104,42 @@ EVIDENCE: ${context}`;
           "Google returned incomplete or invalid analysis from two models. No findings were saved. Try a smaller scope.",
         );
       }
-      if ([429, 404, 500, 502, 503, 504].includes(status)) {
-        quotaReached ||= status === 429;
-        continue;
-      }
-      if (status === 400 || status === 401 || status === 403)
+      const msg =
+        typeof error === "object" && error !== null && "message" in error
+          ? String(error.message)
+          : "";
+      if (
+        status === 401 ||
+        (status === 400 &&
+          (msg.includes("API key not valid") || msg.includes("API_KEY_INVALID")))
+      ) {
         throw new ServiceError(
           503,
           `Google rejected the ${credential.slot} key or this model request. Check the key, model access, and project settings.`,
         );
+      }
+      if (
+        status === 0 ||
+        [429, 404, 408, 500, 502, 503, 504].includes(status)
+      ) {
+        quotaReached ||= status === 429;
+        continue;
+      }
+      if (status === 400 || status === 403) {
+        modelOrRequestRejected = true;
+        continue;
+      }
       throw new ServiceError(
         502,
         "Gemma could not return a valid response. Check model access and quota, then retry.",
       );
     }
+  }
+  if (modelOrRequestRejected) {
+    throw new ServiceError(
+      503,
+      `Google rejected the ${credential.slot} key or this model request. Check the key, model access, and project settings.`,
+    );
   }
   throw new ServiceError(
     quotaReached ? 429 : 503,
